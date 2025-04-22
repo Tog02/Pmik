@@ -65,6 +65,8 @@ target_link_libraries(mikrofon_PDM_PCM
         hardware_spi
         hardware_dma
         hardware_pio
+        hardware_adc
+        pico_multicore
         pico_cyw43_arch_none
         )
 

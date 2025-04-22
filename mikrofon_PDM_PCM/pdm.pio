@@ -4,30 +4,45 @@
 ; Odbiór 1 bitu PDM i zapis do FIFO
 loop:
     in pins, 1         side 0  ; Pobierz 1 bit PDM i ustaw zegar w stanie niskim
-    jmp loop          side 1  ; Ustaw zegar w stanie wysokim
+    nop                side 1;
+    nop                side 1;
+    jmp loop          side 0  ; Ustaw zegar w stanie wysokim
 
-.program blink
-    pull block
-    out y, 32
-.wrap_target
-    mov x, y
-    set pins, 1   ; Turn LED on
-lp1:
-    jmp x-- lp1   ; Delay for (x + 1) cycles, x is a 32 bit number
-    mov x, y
-    set pins, 0   ; Turn LED off
-lp2:
-    jmp x-- lp2   ; Delay for the same number of cycles again
-.wrap             ; Blink forever!
 
 % c-sdk {
-// this is a raw helper function for use by the user which sets up the GPIO output, and configures the SM to output on a particular pin
 
-void pdm_microphone_program_init(PIO pio, uint sm, uint offset, uint pin) {
-   pio_gpio_init(pio, pin);
-   pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
-   pio_sm_config c = blink_program_get_default_config(offset);
-   sm_config_set_set_pins(&c, pin, 1);
-   pio_sm_init(pio, sm, offset, &c);
+    #include "hardware/clocks.h"
+
+static inline void pdm_microphone_program_init(PIO pio, uint sm, uint offset, uint data_pin, uint clk_pin) {
+    
+     pio_gpio_init (pio, data_pin);
+     pio_gpio_init (pio, clk_pin);
+
+    // Konfiguracja pinu DATA jako wejście
+    pio_sm_set_consecutive_pindirs(pio, sm, data_pin, 1, false); // false = input
+
+    // Konfiguracja pinu CLK jako wyjście (dla side-set)
+    pio_sm_set_consecutive_pindirs(pio, sm, clk_pin, 1, true); // true = output
+
+    // Skonfiguruj stan maszynowy PIO
+    pio_sm_config c = pdm_microphone_program_get_default_config(offset);
+
+    // DATA pin jako źródło wejściowe
+    sm_config_set_in_pins(&c, data_pin);
+
+    // CLK pin jako side-set
+    sm_config_set_sideset_pins(&c, clk_pin);
+
+    // Ustawienie FIFO do automatycznego przesuwania
+    //sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+
+    // 32 bity wczytywane do FIFO (pełne słowo)
+    sm_config_set_in_shift(&c, false, true, 32); // przesuwaj w prawo, automatyczny przesył, 32 bity
+
+    // Przypisz i uruchom SM
+    pio_sm_init(pio, sm, offset, &c);
 }
 %}
+
+
+
