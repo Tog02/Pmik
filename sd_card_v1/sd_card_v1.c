@@ -84,8 +84,8 @@ int main()
 {
     // Initialize stdio
     stdio_init_all();
-    gpio_init(16);              // Inicjalizacja pinu GPIO 16
-    gpio_set_dir(16, GPIO_OUT); // Ustawienie jako wyjście
+    // gpio_init(16);              // Inicjalizacja pinu GPIO 16
+    // gpio_set_dir(16, GPIO_OUT); // Ustawienie jako wyjście
     printf("Hello, world!");
 
     // See FatFs - Generic FAT Filesystem Module, "Application Interface",
@@ -94,7 +94,7 @@ int main()
     FRESULT fr = f_mount(&fs, "./", 1);
     if (FR_OK != fr)
     {
-        panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+        printf("not OK");
     }
 
     // Open a file and write to it
@@ -103,7 +103,7 @@ int main()
     fr = f_open(&fil, filename, FA_OPEN_APPEND | FA_WRITE);
     if (FR_OK != fr && FR_EXIST != fr)
     {
-        panic("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+        printf("still not OK");
     }
     if (f_printf(&fil, "Hello, world!\n") < 0)
     {
@@ -138,11 +138,11 @@ int main()
     printf("Goodbye, world!");
     while (1)
     {
-        wwr();
+        // wwr();
         printf("witam\n");
         printf("Odczytane dane: %s\n", readBuffer);
         sleep_ms(1000);
-        gpio_put(16, 0);
+        // gpio_put(16, 0);
         sleep_ms(300);
         polinii();
     }
