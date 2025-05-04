@@ -4,9 +4,7 @@
 ; Odbiór 1 bitu PDM i zapis do FIFO
 loop:
     in pins, 1         side 0  ; Pobierz 1 bit PDM i ustaw zegar w stanie niskim
-    nop                side 1;
-    nop                side 1;
-    jmp loop          side 0  ; Ustaw zegar w stanie wysokim
+    jmp loop          side 1  ; Ustaw zegar w stanie wysokim
 
 
 % c-sdk {

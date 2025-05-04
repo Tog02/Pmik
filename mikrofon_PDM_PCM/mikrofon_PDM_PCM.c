@@ -3,7 +3,7 @@
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "hardware/timer.h"
-#include "pico/cyw43_arch.h"
+// #include "pico/cyw43_arch.h"
 #include "hardware/adc.h"
 #include "pico/multicore.h"
 
@@ -11,17 +11,30 @@
 #include "ff.h"      // Biblioteka FatFS do obsługi karty SD
 #include "hw_config.h"
 #include "f_util.h"
+#include "OpenPDMFilter.h"
+#include "OpenPDMFilter.c"
 
-#define SAMPLE_RATE 8000 // Częstotliwość próbkowania (Hz)
-#define BUFFER_SIZE 512  // Rozmiar bufora audio
-#define PDM_CLOCK_DIV 75 // Podział zegara PDM, 1MHz
+#define SAMPLE_RATE 8000                    // Częstotliwość próbkowania (Hz)
+#define BUFFER_SIZE 512                     // Rozmiar bufora wejściowego
+#define PCM_BUFFER_SIZE (BUFFER_SIZE / 128) // Rozmniar bufora wyjściowego
+#define PDM_CLOCK_DIV 75                    // Podział zegara PDM, 1MHz
 #define YOUR_PDM_PIN 16
 #define YOUR_CLK_PIN 17
 #define BUTTON_PIN 15
 
+#define CHANNELS 1
+#define MICFREQ 2048000
+#define DECIMATION 128
+#define FREQ_PCM (MICFREQ / (1000 * 128))
+#define IN_DATA_LEN (DECIMATION * FREQ_PCM / 8)
+
+bool buffer_full = false;
+
 uint32_t pdm_buffer[BUFFER_SIZE]; // Bufor przechowujący surowe dane PDM
 uint32_t gpio_buffer[BUFFER_SIZE];
-uint8_t pcm_buffer[BUFFER_SIZE];    // Bufor do przechowywania przekonwertowanych próbek PCM
+uint32_t pdm_buffer2[BUFFER_SIZE];    // Drugi bufor na dane PDM
+uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
+
 volatile bool dma_complete = false; // Flaga sygnalizująca zakończenie transferu DMA
 int dma_channel;                    // Kanał DMA używany do transferu danych
 
@@ -78,21 +91,16 @@ void init_pdm(PIO pio, uint sm)
 }
 
 // Przetwarzanie danych PDM na PCM i zapis do pliku
-void process_audio(FIL *file)
+void init_audio_filter(TPDMFilter_InitStruct filter)
 {
-    for (int i = 0; i < BUFFER_SIZE; i++)
-    {
-        int32_t sum = 0;
-        uint32_t pdm_sample = pdm_buffer[i];
-
-        for (int j = 0; j < 32; j++)
-        {
-            sum += (pdm_sample & (1 << j)) ? 1 : -1; // Konwersja PDM na PCM metodą uśredniania
-        }
-        pcm_buffer[i] = (sum / 32) + 128; // Normalizacja wartości do formatu 8-bitowego PCM
-    }
-    UINT bw;
-    f_write(file, pcm_buffer, BUFFER_SIZE, &bw); // Zapis danych PCM do pliku WAV
+    filter.LP_HZ = 8000;
+    filter.HP_HZ = 10;
+    filter.Fs = FREQ_PCM * 1000;
+    filter.In_MicChannels = 1;
+    filter.Out_MicChannels = CHANNELS;
+    filter.Decimation = DECIMATION;
+    filter.MaxVolume = 64;
+    Open_PDM_Filter_Init(&filter);
 }
 
 // Tworzenie nagłówka pliku WAV
@@ -161,18 +169,56 @@ void finalize_wav_file(FIL *file)
 
 void core1_entry()
 {
-    while (1)
+    int s = 1000;
+    FATFS fs;
+    FIL file;
+    UINT bw;
+    FRESULT result;
+    f_mount(&fs, "", 1);
+    result = f_open(&file, "nagranie.wav", FA_WRITE | FA_CREATE_ALWAYS);
+    if (result != FR_OK)
+
+    {
+        printf("sd problem");
+    }
+    TPDMFilter_InitStruct filter;
+    init_audio_filter(filter);
+    write_wav_header(&file);
+    while (s > 0)
     {
         /*for (int i = 0; i < BUFFER_SIZE; i++)
         {
             gpio_buffer[i] = gpio_get(15);
             // pdm_buffer[i + 1] = gpio_get(BUTTON_PIN);
         }*/
-        for (int i = 0; i < BUFFER_SIZE; i++)
+        /*for (int i = 0; i < BUFFER_SIZE; i++)
         {
             printf("Dane z bufora %d: %d\n", i, pdm_buffer[i]);
+        }*/
+
+        if (buffer_full)
+        {
+            s--;
+            memcpy(pdm_buffer2, pdm_buffer, sizeof(pdm_buffer));
+            for (uint8_t i = 0; i < 2; i++)
+            {
+                uint8_t *chunk = &pdm_buffer2[i * IN_DATA_LEN];
+                Open_PDM_Filter_128(chunk, (uint16_t *)&pcm_buffer[i * FREQ_PCM], 64, &filter);
+            }
+            result = f_write(&file, pcm_buffer, sizeof(pcm_buffer), &bw);
+            if (result != FR_OK)
+
+            {
+                printf("sd write problem\n");
+            }
+            buffer_full = false;
         }
+        tight_loop_contents();
     }
+    finalize_wav_file(&file);
+    f_close(&file); // Zamknięcie pliku po zakończeniu nagrywania
+    f_unmount("");
+    printf("\nnagranie.wav ready\n");
 }
 
 // Główna funkcja programu
@@ -194,7 +240,7 @@ int main()
     gpio_set_function(BUTTON_PIN + 1, GPIO_FUNC_PIO0);
 
     printf("Hello world");
-    sleep_ms(10000);
+    sleep_ms(5000);
     printf("Hello again");
     PIO pio = pio0;
     uint sm = 0;
@@ -209,7 +255,7 @@ int main()
     {
         while (1)
         {
-            printf("Header filed");
+            printf("Header failed");
             sleep_ms(500);
         }
 
@@ -249,11 +295,12 @@ int main()
             pdm_buffer[i] = pio_sm_get_blocking(pio, sm);
             // pdm_buffer[i + 1] = gpio_get(BUTTON_PIN);
         }
-        for (int i = 0; i < BUFFER_SIZE; i++)
+        buffer_full = true;
+        /*for (int i = 0; i < BUFFER_SIZE; i++)
         {
             // printf("Dane z bufora %d: %d\n", i, pdm_buffer[i]);
             // busy_wait_ms(100);
-        }
+        }*/
 
         // printf("Odczytane dane20: %d\n", pdm_buffer[20]);
         // sleep_ms(1000);
