@@ -32,7 +32,7 @@ bool buffer_full = false;
 
 uint32_t pdm_buffer[BUFFER_SIZE]; // Bufor przechowujący surowe dane PDM
 uint32_t gpio_buffer[BUFFER_SIZE];
-uint32_t pdm_buffer2[BUFFER_SIZE];    // Drugi bufor na dane PDM
+uint8_t pdm_buffer2[BUFFER_SIZE*4];    // Drugi bufor na dane PDM
 uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
 
 volatile bool dma_complete = false; // Flaga sygnalizująca zakończenie transferu DMA
