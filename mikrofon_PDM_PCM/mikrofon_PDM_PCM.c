@@ -3,8 +3,6 @@
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "hardware/timer.h"
-// #include "pico/cyw43_arch.h"
-#include "hardware/adc.h"
 #include "pico/multicore.h"
 
 #include "pdm.pio.h" // Plik PIO do odbioru PDM
@@ -14,13 +12,9 @@
 #include "OpenPDMFilter.h"
 #include "OpenPDMFilter.c"
 
-#define SAMPLE_RATE 8000                    // Częstotliwość próbkowania (Hz)
-#define BUFFER_SIZE 512                     // Rozmiar bufora wejściowego
-#define PCM_BUFFER_SIZE (BUFFER_SIZE / 128) // Rozmniar bufora wyjściowego
-#define PDM_CLOCK_DIV 75                    // Podział zegara PDM, 1MHz
-#define YOUR_PDM_PIN 16
-#define YOUR_CLK_PIN 17
-#define BUTTON_PIN 15
+#define SAMPLE_RATE 16000                 // Częstotliwość próbkowania (Hz)
+#define BUFFER_SIZE 512                   // Rozmiar bufora wejściowego
+#define PCM_BUFFER_SIZE (BUFFER_SIZE / 4) // Rozmniar bufora wyjściowego
 
 #define CHANNELS 1
 #define MICFREQ 2048000
@@ -28,49 +22,58 @@
 #define FREQ_PCM (MICFREQ / (1000 * 128))
 #define IN_DATA_LEN (DECIMATION * FREQ_PCM / 8)
 
-bool buffer_full = false;
+#define PDM_CLOCK_DIV 37 // Podział zegara PDM, 2MHz
+#define YOUR_PDM_PIN 16
+#define YOUR_CLK_PIN 17
+#define BUTTON_PIN 15
 
-uint32_t pdm_buffer[BUFFER_SIZE]; // Bufor przechowujący surowe dane PDM
-uint32_t gpio_buffer[BUFFER_SIZE];
-uint8_t pdm_buffer2[BUFFER_SIZE*4];    // Drugi bufor na dane PDM
+bool buffer_full = false;
 uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
+uint32_t pdm_buffer[BUFFER_SIZE];     // Bufor przechowujący surowe dane PDM
+uint32_t gpio_buffer[BUFFER_SIZE];
+uint8_t pdm_buffer2[BUFFER_SIZE * 4]; // Drugi bufor na dane PDM
 
 volatile bool dma_complete = false; // Flaga sygnalizująca zakończenie transferu DMA
 int dma_channel;                    // Kanał DMA używany do transferu danych
-
-const uint8_t sine_wave_1khz_8bit_8khz[] = {
-    128, 217, 255, 217, 128, 39, 0, 39};
-uint8_t long_sin[8000];
-void make_longer()
-{
-    for (int i = 0; i < 8000; i++)
-    {
-        long_sin[i] = sine_wave_1khz_8bit_8khz[i % 8];
-    }
-}
+dma_channel_config config;          // configuracja DMA
 
 // Obsługa przerwania DMA
 void dma_handler()
 {
-    dma_complete = true;
-    dma_hw->ints0 = 1u << dma_channel; // Czyścimy flagę przerwania dla konkretnego kanału DMA
-    printf("DMA complete\n");
+    uint32_t ints = dma_hw->ints0; // odczytujemy maskę aktywnych przerwań
+    if (ints & (1u << dma_channel))
+    {
+        dma_hw->ints0 = 1u << dma_channel; // czyścimy flagę
+        dma_complete = true;
+
+        buffer_full = true;
+        // printf("DMA complete\n");
+
+        dma_channel_configure(
+            dma_channel,
+            &config,       // NULL -> używa poprzedniej konfiguracji
+            pdm_buffer,    // Nowy bufor docelowy (lub ten sam, jeśli nadpisujesz)
+            &pio0->rxf[0], // Źródło (FIFO z PIO)
+            BUFFER_SIZE,   // Ilość próbek
+            true           // Start natychmiastowy
+        );
+    }
 }
 
 // Inicjalizacja DMA do pobierania danych z PIO
 void init_dma(PIO pio, uint sm)
 {
-    dma_channel = dma_claim_unused_channel(true);                            // Przydzielenie dostępnego kanału DMA
-    dma_channel_config config = dma_channel_get_default_config(dma_channel); // Pobranie domyślnej konfiguracji kanału DMA
+    dma_channel = 10;                                     // dma_claim_unused_channel(true);                            // Przydzielenie dostępnego kanału DMA
+    config = dma_channel_get_default_config(dma_channel); // Pobranie domyślnej konfiguracji kanału DMA
 
-    channel_config_set_transfer_data_size(&config, DMA_SIZE_32);    // Konfiguracja rozmiaru przesyłanych danych (32 bity)
+    // channel_config_set_transfer_data_size(&config, DMA_SIZE_32);    // Konfiguracja rozmiaru przesyłanych danych (32 bity)
     channel_config_set_read_increment(&config, false);              // Brak inkrementacji adresu źródłowego (odczyt z jednego rejestru FIFO PIO)
     channel_config_set_write_increment(&config, true);              // Inkrementacja adresu docelowego (zapisywanie kolejnych wartości w buforze)
     channel_config_set_dreq(&config, pio_get_dreq(pio, sm, false)); // Ustawienie żądania transferu (DREQ) od PIO
 
     dma_channel_configure(
         dma_channel, &config,
-        pdm_buffer,    // Bufor docelowy dla DMA (miejsce, gdzie będą zapisywane dane PDM)
+        &pdm_buffer,   // Bufor docelowy dla DMA (miejsce, gdzie będą zapisywane dane PDM)
         &pio->rxf[sm], // Adres źródłowy - FIFO odbiorcze PIO
         BUFFER_SIZE,   // Liczba transferów (ilość próbek do pobrania)
         true           // Natychmiastowe uruchomienie transferu DMA
@@ -109,7 +112,7 @@ int write_wav_header(FIL *file)
 {
     UINT bw;
     uint32_t sample_rate = SAMPLE_RATE;
-    uint16_t bits_per_sample = 8;
+    uint16_t bits_per_sample = 16;
     uint16_t num_channels = 1;
     uint32_t byte_rate = sample_rate * num_channels * (bits_per_sample / 8);
     uint16_t block_align = num_channels * (bits_per_sample / 8);
@@ -182,36 +185,37 @@ void core1_entry()
         printf("sd problem");
     }
     TPDMFilter_InitStruct filter;
-    init_audio_filter(filter);
+    filter.LP_HZ = 8000;
+    filter.HP_HZ = 10;
+    filter.Fs = FREQ_PCM * 1000;
+    filter.In_MicChannels = 1;
+    filter.Out_MicChannels = CHANNELS;
+    filter.Decimation = DECIMATION;
+    filter.MaxVolume = 64;
+    Open_PDM_Filter_Init(&filter);
+    // init_audio_filter(filter);
     write_wav_header(&file);
     while (s > 0)
     {
-        /*for (int i = 0; i < BUFFER_SIZE; i++)
-        {
-            gpio_buffer[i] = gpio_get(15);
-            // pdm_buffer[i + 1] = gpio_get(BUTTON_PIN);
-        }*/
-        /*for (int i = 0; i < BUFFER_SIZE; i++)
-        {
-            printf("Dane z bufora %d: %d\n", i, pdm_buffer[i]);
-        }*/
 
-        if (buffer_full)
+        if (dma_complete)
         {
             s--;
+            dma_complete = false;
             memcpy(pdm_buffer2, pdm_buffer, sizeof(pdm_buffer));
-            for (uint8_t i = 0; i < 2; i++)
+            // uint8_t *pdm8 = (uint8_t *)pdm_buffer2;
+            for (uint8_t i = 0; i < 8; i++)
             {
                 uint8_t *chunk = &pdm_buffer2[i * IN_DATA_LEN];
                 Open_PDM_Filter_128(chunk, (uint16_t *)&pcm_buffer[i * FREQ_PCM], 64, &filter);
             }
+            // uint32_t *pdm_buffer2 = (uint32_t *)pdm8;
             result = f_write(&file, pcm_buffer, sizeof(pcm_buffer), &bw);
             if (result != FR_OK)
 
             {
                 printf("sd write problem\n");
             }
-            buffer_full = false;
         }
         tight_loop_contents();
     }
@@ -227,83 +231,24 @@ int main()
 
     stdio_init_all();
 
-    adc_init();          // Inicjalizacja ADC
-    adc_gpio_init(26);   // Włącz ADC na GPIO26
-    adc_select_input(0); // Wybierz ADC0 (GPIO26)
-
-    gpio_init(BUTTON_PIN);
-    gpio_set_dir(BUTTON_PIN, GPIO_IN);
-
-    gpio_init(BUTTON_PIN + 1);
-    gpio_set_dir(BUTTON_PIN + 1, GPIO_IN);
-    // gpio_pull_up(BUTTON_PIN + 1);
-    gpio_set_function(BUTTON_PIN + 1, GPIO_FUNC_PIO0);
-
     printf("Hello world");
     sleep_ms(5000);
     printf("Hello again");
+
+    pdm_buffer[1] = 12;
     PIO pio = pio0;
     uint sm = 0;
+
     init_pdm(pio, sm); // Inicjalizacja mikrofonu PDM w PIO
+    pio_sm_set_enabled(pio, sm, false);
     init_dma(pio, sm); // Inicjalizacja DMA do przesyłania danych
-
-    FATFS fs;
-    FIL file;
-    f_mount(&fs, "", 1);
-    f_open(&file, "record.wav", FA_WRITE | FA_CREATE_ALWAYS);
-    if (write_wav_header(&file) == 0)
-    {
-        while (1)
-        {
-            printf("Header failed");
-            sleep_ms(500);
-        }
-
-    }; // Zapis nagłówka WAV
-    make_longer();
-    UINT bw;
-    if (f_write(&file, long_sin, 8000, &bw) != FR_OK)
-    {
-        printf("Body write problem");
-        sleep_ms(500);
-    };
-    finalize_wav_file(&file);
-    f_close(&file); // Zamknięcie pliku po zakończeniu nagrywania
-    f_unmount("");
     pio_sm_set_enabled(pio, sm, true);
 
     multicore_launch_core1(core1_entry);
 
     while (1)
     {
-
-        if (dma_complete)
-        {
-            printf("Odczytane dane0: %d\n", pdm_buffer[0]);
-            pdm_buffer[0] = 1112;
-            printf("Po wpisaniu: %d\n", pdm_buffer[0]);
-            dma_complete = false;
-            // process_audio(&file);                                                       // Przetwarzanie i zapis danych
-
-            // dma_channel_transfer_from_buffer_now(dma_channel, &pio->rxf[sm], BUFFER_SIZE); // Ponowne uruchomienie DMA
-        }
-        // sleep_ms(10);
-        // printf("Odczytane dane0: %d\n", pdm_buffer[0]);
-
-        for (int i = 0; i < BUFFER_SIZE; i++)
-        {
-            pdm_buffer[i] = pio_sm_get_blocking(pio, sm);
-            // pdm_buffer[i + 1] = gpio_get(BUTTON_PIN);
-        }
-        buffer_full = true;
-        /*for (int i = 0; i < BUFFER_SIZE; i++)
-        {
-            // printf("Dane z bufora %d: %d\n", i, pdm_buffer[i]);
-            // busy_wait_ms(100);
-        }*/
-
-        // printf("Odczytane dane20: %d\n", pdm_buffer[20]);
-        // sleep_ms(1000);
+        __wfi();
         tight_loop_contents(); // Zapewnienie ciągłej pracy
     }
 
