@@ -31,7 +31,10 @@ bool buffer_full = false;
 uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
 uint32_t pdm_buffer[BUFFER_SIZE];     // Bufor przechowujący surowe dane PDM
 uint32_t gpio_buffer[BUFFER_SIZE];
-uint8_t pdm_buffer2[BUFFER_SIZE * 4]; // Drugi bufor na dane PDM
+uint32_t pdm_buffer2[BUFFER_SIZE]; // Drugi bufor na dane PDM
+
+volatile uint32_t *active_pdm_buffer; // aktualny bufor używany przez DMA
+volatile uint32_t *ready_pdm_buffer;  // gotowy bufor do przetwarzania
 
 volatile bool dma_complete = false; // Flaga sygnalizująca zakończenie transferu DMA
 int dma_channel;                    // Kanał DMA używany do transferu danych
@@ -44,18 +47,25 @@ void dma_handler()
     if (ints & (1u << dma_channel))
     {
         dma_hw->ints0 = 1u << dma_channel; // czyścimy flagę
-        dma_complete = true;
+        multicore_fifo_push_blocking(1);   // Wysłanie sygnału do rdzenia 1 //
+        // dma_complete = true;
 
-        buffer_full = true;
-        // printf("DMA complete\n");
+        // Bufor właśnie został wypełniony przez DMA, sygnalizuj do rdzenia 1
+        ready_pdm_buffer = active_pdm_buffer;
+
+        // Przełącz na drugi bufor
+        if (active_pdm_buffer == pdm_buffer)
+            active_pdm_buffer = pdm_buffer2;
+        else
+            active_pdm_buffer = pdm_buffer;
 
         dma_channel_configure(
             dma_channel,
-            &config,       // NULL -> używa poprzedniej konfiguracji
-            pdm_buffer,    // Nowy bufor docelowy (lub ten sam, jeśli nadpisujesz)
-            &pio0->rxf[0], // Źródło (FIFO z PIO)
-            BUFFER_SIZE,   // Ilość próbek
-            true           // Start natychmiastowy
+            &config,                   // NULL -> używa poprzedniej konfiguracji
+            (void *)active_pdm_buffer, // Nowy bufor docelowy (lub ten sam, jeśli nadpisujesz)
+            &pio0->rxf[0],             // Źródło (FIFO z PIO)
+            BUFFER_SIZE,               // Ilość próbek
+            true                       // Start natychmiastowy
         );
     }
 }
@@ -198,15 +208,17 @@ void core1_entry()
     while (s > 0)
     {
 
-        if (dma_complete)
+        uint32_t msg = multicore_fifo_pop_blocking(); // Blokujące oczekiwanie na sygnał z rdzenia 0
+        if (msg == 1)
         {
             s--;
             dma_complete = false;
-            memcpy(pdm_buffer2, pdm_buffer, sizeof(pdm_buffer));
+            // memcpy(pdm_buffer2, pdm_buffer, sizeof(pdm_buffer));
             // uint8_t *pdm8 = (uint8_t *)pdm_buffer2;
+            uint8_t *pdm8 = (uint8_t *)ready_pdm_buffer;
             for (uint8_t i = 0; i < 8; i++)
             {
-                uint8_t *chunk = &pdm_buffer2[i * IN_DATA_LEN];
+                uint8_t *chunk = &pdm8[i * IN_DATA_LEN];
                 Open_PDM_Filter_128(chunk, (uint16_t *)&pcm_buffer[i * FREQ_PCM], 64, &filter);
             }
             // uint32_t *pdm_buffer2 = (uint32_t *)pdm8;
@@ -241,7 +253,8 @@ int main()
 
     init_pdm(pio, sm); // Inicjalizacja mikrofonu PDM w PIO
     pio_sm_set_enabled(pio, sm, false);
-    init_dma(pio, sm); // Inicjalizacja DMA do przesyłania danych
+    active_pdm_buffer = pdm_buffer; // Start z bufora 0
+    init_dma(pio, sm);              // Inicjalizacja DMA do przesyłania danych
     pio_sm_set_enabled(pio, sm, true);
 
     multicore_launch_core1(core1_entry);
