@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD pico2_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -38,13 +38,17 @@ add_subdirectory(../sd_library/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src build)
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(mikrofon_PDM_PCM mikrofon_PDM_PCM.c 
-hw_config.c)
+hw_config.c
+server_common.c
+)
 
 pico_set_program_name(mikrofon_PDM_PCM "mikrofon_PDM_PCM")
 pico_set_program_version(mikrofon_PDM_PCM "0.1")
 
 # Generate PIO header
 pico_generate_pio_header(mikrofon_PDM_PCM ${CMAKE_CURRENT_LIST_DIR}/pdm.pio)
+
+
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(mikrofon_PDM_PCM 0)
@@ -53,6 +57,9 @@ pico_enable_stdio_usb(mikrofon_PDM_PCM 1)
 # Add the standard library to the build
 target_link_libraries(mikrofon_PDM_PCM
         pico_stdlib
+        pico_btstack_ble
+        pico_btstack_cyw43
+        pico_cyw43_arch_none
         no-OS-FatFS-SD-SDIO-SPI-RPi-Pico)
 
 # Add the standard include files to the build
@@ -69,6 +76,7 @@ target_link_libraries(mikrofon_PDM_PCM
         pico_multicore
         #pico_cyw43_arch_none
         )
+pico_btstack_make_gatt_header(mikrofon_PDM_PCM PRIVATE "${CMAKE_CURRENT_LIST_DIR}/mic.gatt")
 
 pico_add_extra_outputs(mikrofon_PDM_PCM)
 

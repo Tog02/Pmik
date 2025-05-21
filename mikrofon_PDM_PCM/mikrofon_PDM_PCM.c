@@ -1,9 +1,32 @@
+
+/******************************************************************************
+ * Projekt:        [Dźwiękopułapka]
+ * Plik:           main.c
+ * Opis:           [Dźwiękopułapka wykrywa dziwne dźwięki, a następnie nagrywa
+ *                  je by nie umknęły uwadze użytkownika. Wysyła też powiadomienie
+ *                  po zakończeniu nagrywania
+ *                  Korzysta z mikrofonu PDM, karty sd, oraz ekranu ssd1306]
+ *
+ * Autorzy:        Tomasz Głowacki
+ *                 Bartłomiej Korzeniewski
+ *
+ * Data utworzenia:      [2025-02-15]
+ * Ostatnia modyfikacja: [2025-05-20]
+ *
+ * Kompilator:      [np. arm-none-eabi-gcc]
+ * Środowisko:      [np. VS Code + PlatformIO]
+ * Platforma:       [np. Raspberry Pi Pico 2]
+ ******************************************************************************/
+
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "hardware/timer.h"
 #include "pico/multicore.h"
+#include "btstack.h"
+#include "pico/cyw43_arch.h"
+#include "pico/btstack_cyw43.h"
 
 #include "pdm.pio.h" // Plik PIO do odbioru PDM
 #include "ff.h"      // Biblioteka FatFS do obsługi karty SD
@@ -11,6 +34,7 @@
 #include "f_util.h"
 #include "OpenPDMFilter.h"
 #include "OpenPDMFilter.c"
+#include "server_common.h"
 
 #define SAMPLE_RATE 16000                 // Częstotliwość próbkowania (Hz)
 #define BUFFER_SIZE 512                   // Rozmiar bufora wejściowego
@@ -28,10 +52,11 @@
 #define BUTTON_PIN 15
 
 bool buffer_full = false;
+int kon = 0;
+
 uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
 uint32_t pdm_buffer[BUFFER_SIZE];     // Bufor przechowujący surowe dane PDM
-uint32_t gpio_buffer[BUFFER_SIZE];
-uint32_t pdm_buffer2[BUFFER_SIZE]; // Drugi bufor na dane PDM
+uint32_t pdm_buffer2[BUFFER_SIZE];    // Drugi bufor na dane PDM
 
 volatile uint32_t *active_pdm_buffer; // aktualny bufor używany przez DMA
 volatile uint32_t *ready_pdm_buffer;  // gotowy bufor do przetwarzania
@@ -39,6 +64,34 @@ volatile uint32_t *ready_pdm_buffer;  // gotowy bufor do przetwarzania
 volatile bool dma_complete = false; // Flaga sygnalizująca zakończenie transferu DMA
 int dma_channel;                    // Kanał DMA używany do transferu danych
 dma_channel_config config;          // configuracja DMA
+
+#define HEARTBEAT_PERIOD_MS 1000
+
+static btstack_timer_source_t heartbeat;
+static btstack_packet_callback_registration_t hci_event_callback_registration;
+
+static void heartbeat_handler(struct btstack_timer_source *ts)
+{
+    static uint32_t counter = 0;
+    counter++;
+
+    // Update the temp every 10s
+    /*if (counter % 10 == 0) {
+        poll_temp();
+        if (le_notification_enabled) {
+            att_server_request_can_send_now_event(con_handle);
+        }
+    }*/
+
+    // Invert the led
+    static int led_on = true;
+    led_on = !led_on;
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_on);
+
+    // Restart timer
+    btstack_run_loop_set_timer(ts, HEARTBEAT_PERIOD_MS);
+    btstack_run_loop_add_timer(ts);
+}
 
 // Obsługa przerwania DMA
 void dma_handler()
@@ -58,15 +111,18 @@ void dma_handler()
             active_pdm_buffer = pdm_buffer2;
         else
             active_pdm_buffer = pdm_buffer;
+        if (kon == 0)
+        {
 
-        dma_channel_configure(
-            dma_channel,
-            &config,                   // NULL -> używa poprzedniej konfiguracji
-            (void *)active_pdm_buffer, // Nowy bufor docelowy (lub ten sam, jeśli nadpisujesz)
-            &pio0->rxf[0],             // Źródło (FIFO z PIO)
-            BUFFER_SIZE,               // Ilość próbek
-            true                       // Start natychmiastowy
-        );
+            dma_channel_configure(
+                dma_channel,
+                &config,                   // NULL -> używa poprzedniej konfiguracji
+                (void *)active_pdm_buffer, // Nowy bufor docelowy (lub ten sam, jeśli nadpisujesz)
+                &pio0->rxf[0],             // Źródło (FIFO z PIO)
+                BUFFER_SIZE,               // Ilość próbek
+                true                       // Start natychmiastowy
+            );
+        }
     }
 }
 
@@ -116,7 +172,6 @@ void init_audio_filter(TPDMFilter_InitStruct filter)
     Open_PDM_Filter_Init(&filter);
 }
 
-// Tworzenie nagłówka pliku WAV
 // Tworzenie nagłówka pliku WAV
 int write_wav_header(FIL *file)
 {
@@ -205,49 +260,80 @@ void core1_entry()
     Open_PDM_Filter_Init(&filter);
     // init_audio_filter(filter);
     write_wav_header(&file);
-    while (s > 0)
+
+    while (1)
     {
+        /* code */
 
-        uint32_t msg = multicore_fifo_pop_blocking(); // Blokujące oczekiwanie na sygnał z rdzenia 0
-        if (msg == 1)
+        while (s > 0)
         {
-            s--;
-            dma_complete = false;
-            // memcpy(pdm_buffer2, pdm_buffer, sizeof(pdm_buffer));
-            // uint8_t *pdm8 = (uint8_t *)pdm_buffer2;
-            uint8_t *pdm8 = (uint8_t *)ready_pdm_buffer;
-            for (uint8_t i = 0; i < 8; i++)
-            {
-                uint8_t *chunk = &pdm8[i * IN_DATA_LEN];
-                Open_PDM_Filter_128(chunk, (uint16_t *)&pcm_buffer[i * FREQ_PCM], 64, &filter);
-            }
-            // uint32_t *pdm_buffer2 = (uint32_t *)pdm8;
-            result = f_write(&file, pcm_buffer, sizeof(pcm_buffer), &bw);
-            if (result != FR_OK)
 
+            uint32_t msg = multicore_fifo_pop_blocking(); // Blokujące oczekiwanie na sygnał z rdzenia 0
+            if (msg == 1)
             {
-                printf("sd write problem\n");
+                s--;
+                dma_complete = false;
+                // memcpy(pdm_buffer2, pdm_buffer, sizeof(pdm_buffer));
+                // uint8_t *pdm8 = (uint8_t *)pdm_buffer2;
+                uint8_t *pdm8 = (uint8_t *)ready_pdm_buffer;
+                for (uint8_t i = 0; i < 8; i++)
+                {
+                    uint8_t *chunk = &pdm8[i * IN_DATA_LEN];
+                    Open_PDM_Filter_128(chunk, (uint16_t *)&pcm_buffer[i * FREQ_PCM], 64, &filter);
+                }
+                // uint32_t *pdm_buffer2 = (uint32_t *)pdm8;
+                result = f_write(&file, pcm_buffer, sizeof(pcm_buffer), &bw);
+                if (result != FR_OK)
+
+                {
+                    printf("sd write problem\n");
+                }
             }
         }
-        tight_loop_contents();
-    }
-    finalize_wav_file(&file);
-    f_close(&file); // Zamknięcie pliku po zakończeniu nagrywania
-    f_unmount("");
-    printf("\nnagranie.wav ready\n");
-}
+        if (kon == 0)
+        {
+            kon = 1;
 
+            finalize_wav_file(&file);
+            f_close(&file); // Zamknięcie pliku po zakończeniu nagrywania
+            f_unmount("");
+            printf("\nnagranie.wav ready\n");
+        }
+    }
+    tight_loop_contents();
+}
 // Główna funkcja programu
 int main()
 {
 
     stdio_init_all();
 
+    cyw43_arch_init();
+
+    l2cap_init();
+    sm_init();
+
+    att_server_init(profile_data, att_read_callback, att_write_callback);
+
+    // inform about BTstack state
+    hci_event_callback_registration.callback = &packet_handler;
+    hci_add_event_handler(&hci_event_callback_registration);
+
+    // register for ATT event
+    att_server_register_packet_handler(packet_handler);
+
+    // set one-shot btstack timer
+    heartbeat.process = &heartbeat_handler;
+    btstack_run_loop_set_timer(&heartbeat, HEARTBEAT_PERIOD_MS);
+    btstack_run_loop_add_timer(&heartbeat);
+
+    // turn on bluetooth!
+    hci_power_control(HCI_POWER_ON);
+
     printf("Hello world");
     sleep_ms(5000);
     printf("Hello again");
 
-    pdm_buffer[1] = 12;
     PIO pio = pio0;
     uint sm = 0;
 
@@ -261,8 +347,14 @@ int main()
 
     while (1)
     {
-        __wfi();
-        tight_loop_contents(); // Zapewnienie ciągłej pracy
+        sleep_ms(3000);
+        if (le_notification_enabled)
+        {
+            att_server_request_can_send_now_event(con_handle);
+            current_temp = current_temp + 200;
+        }
+        printf("temp: %d\n", current_temp);
+        // tight_loop_contents(); // Zapewnienie ciągłej pracy
     }
 
     return 0;
