@@ -12,6 +12,9 @@
 #include "server_common.h"
 
 #define APP_AD_FLAGS 0x06
+
+extern bool want_start;
+
 static uint8_t adv_data[] = {
     // Flags general discoverable
     0x02,
@@ -127,6 +130,11 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
         received_data[len] = 0;
 
         printf("Received over BLE: %s\n", received_data);
+        char znak = *"S";
+        if (received_data[0] == znak)
+        {
+            want_start = true;
+        }
     }
 
     if (att_handle != ATT_CHARACTERISTIC_12345678_1234_5678_1234_56789abcdef1_01_CLIENT_CONFIGURATION_HANDLE)

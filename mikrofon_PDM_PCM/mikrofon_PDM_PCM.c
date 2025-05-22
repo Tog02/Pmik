@@ -35,6 +35,7 @@
 #include "OpenPDMFilter.h"
 #include "OpenPDMFilter.c"
 #include "server_common.h"
+#include "STATES.h"
 
 #define SAMPLE_RATE 16000                 // Częstotliwość próbkowania (Hz)
 #define BUFFER_SIZE 512                   // Rozmiar bufora wejściowego
@@ -54,8 +55,12 @@
 #define MAX_FILES 50
 #define MAX_FILENAME_LEN 32 // 8.3 format + null
 
+bool want_start = false;
+
+int record_len = 1000;
+
 bool buffer_full = false;
-int kon = 0;
+bool recording = false;
 
 uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
 uint32_t pdm_buffer[BUFFER_SIZE];     // Bufor przechowujący surowe dane PDM
@@ -106,7 +111,7 @@ void dma_handler()
     if (ints & (1u << dma_channel))
     {
         dma_hw->ints0 = 1u << dma_channel; // czyścimy flagę
-        multicore_fifo_push_blocking(1);   // Wysłanie sygnału do rdzenia 1 //
+        multicore_fifo_push_blocking(2);   // Wysłanie sygnału do rdzenia 1 //
         // dma_complete = true;
 
         // Bufor właśnie został wypełniony przez DMA, sygnalizuj do rdzenia 1
@@ -117,7 +122,7 @@ void dma_handler()
             active_pdm_buffer = pdm_buffer2;
         else
             active_pdm_buffer = pdm_buffer;
-        if (kon == 0)
+        if (recording)
         {
 
             dma_channel_configure(
@@ -129,6 +134,18 @@ void dma_handler()
                 true                       // Start natychmiastowy
             );
         }
+        else
+        {
+            multicore_fifo_push_blocking(3);
+        }
+
+        //**************************** */ to throw away
+        record_len--;
+        if (record_len < 0)
+        {
+            recording = false;
+        }
+        //**************************** */
     }
 }
 
@@ -241,84 +258,35 @@ void finalize_wav_file(FIL *file)
     f_write(file, &data_chunk_size, 4, &bw);
 }
 
-void core1_entry()
+void do_filter(TPDMFilter_InitStruct *filter)
 {
-    int s = 1000;
-    FATFS fs;
-    FIL file;
+    uint8_t *pdm8 = (uint8_t *)ready_pdm_buffer;
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        uint8_t *chunk = &pdm8[i * IN_DATA_LEN];
+        Open_PDM_Filter_128(chunk, (uint16_t *)&pcm_buffer[i * FREQ_PCM], 64, filter);
+    }
+}
+
+void write_buffer(FIL *file)
+{
     UINT bw;
-    FRESULT result;
-    f_mount(&fs, "", 1);
-    result = f_open(&file, "nagranie.wav", FA_WRITE | FA_CREATE_ALWAYS);
+    FRESULT result = f_write(file, pcm_buffer, sizeof(pcm_buffer), &bw);
     if (result != FR_OK)
-
     {
-        printf("sd problem");
+        printf("sd write problem\n");
     }
-    TPDMFilter_InitStruct filter;
-    filter.LP_HZ = 8000;
-    filter.HP_HZ = 10;
-    filter.Fs = FREQ_PCM * 1000;
-    filter.In_MicChannels = 1;
-    filter.Out_MicChannels = CHANNELS;
-    filter.Decimation = DECIMATION;
-    filter.MaxVolume = 64;
-    Open_PDM_Filter_Init(&filter);
-    // init_audio_filter(filter);
-    write_wav_header(&file);
-
-    while (1)
-    {
-        /* code */
-
-        while (s > 0)
-        {
-
-            uint32_t msg = multicore_fifo_pop_blocking(); // Blokujące oczekiwanie na sygnał z rdzenia 0
-            if (msg == 1)
-            {
-                s--;
-                dma_complete = false;
-                // memcpy(pdm_buffer2, pdm_buffer, sizeof(pdm_buffer));
-                // uint8_t *pdm8 = (uint8_t *)pdm_buffer2;
-                uint8_t *pdm8 = (uint8_t *)ready_pdm_buffer;
-                for (uint8_t i = 0; i < 8; i++)
-                {
-                    uint8_t *chunk = &pdm8[i * IN_DATA_LEN];
-                    Open_PDM_Filter_128(chunk, (uint16_t *)&pcm_buffer[i * FREQ_PCM], 64, &filter);
-                }
-                // uint32_t *pdm_buffer2 = (uint32_t *)pdm8;
-                result = f_write(&file, pcm_buffer, sizeof(pcm_buffer), &bw);
-                if (result != FR_OK)
-
-                {
-                    printf("sd write problem\n");
-                }
-            }
-        }
-        if (kon == 0)
-        {
-            kon = 1;
-
-            finalize_wav_file(&file);
-            f_close(&file); // Zamknięcie pliku po zakończeniu nagrywania
-            f_unmount("");
-            printf("\nnagranie.wav ready\n");
-        }
-    }
-    tight_loop_contents();
 }
 
 int list_files(const char *path)
 {
-    FATFS fs;
-    FRESULT res = f_mount(&fs, "", 1); // "" = domyślny napęd, 1 = mount now
+    // FATFS fs;
+    // FRESULT res = f_mount(&fs, "", 1); // "" = domyślny napęd, 1 = mount now
     DIR dir;
     FILINFO fno;
-    // FRESULT res;
     int file_count = 0;
 
-    res = f_opendir(&dir, path);
+    FRESULT res = f_opendir(&dir, path);
     if (res != FR_OK)
     {
         printf("Failed to open directory: %d\n", res);
@@ -346,7 +314,7 @@ int list_files(const char *path)
     }
 
     f_closedir(&dir);
-    f_unmount("");
+    // f_unmount("");
     return file_count;
 }
 
@@ -383,6 +351,76 @@ void generate_unique_filename_from_list(char *out_name, size_t max_len,
     snprintf(out_name, max_len, "nagranie9999.wav");
 }
 
+void core1_entry()
+{
+    char new_name[MAX_FILENAME_LEN];
+    FATFS fs;
+    FIL file;
+    UINT bw;
+    FRESULT result;
+    f_mount(&fs, "", 1);
+
+    TPDMFilter_InitStruct filter;
+    filter.LP_HZ = 8000;
+    filter.HP_HZ = 10;
+    filter.Fs = FREQ_PCM * 1000;
+    filter.In_MicChannels = 1;
+    filter.Out_MicChannels = CHANNELS;
+    filter.Decimation = DECIMATION;
+    filter.MaxVolume = 64;
+    Open_PDM_Filter_Init(&filter);
+    // init_audio_filter(filter);
+
+    while (1)
+    {
+
+        uint32_t msg = multicore_fifo_pop_blocking(); // Blokujące oczekiwanie na sygnał z rdzenia 0
+
+        switch (msg)
+        {
+        case NEW_RECORD:
+        {
+            printf("\nstarted recording\n");
+            file_count = list_files("/");
+
+            generate_unique_filename_from_list(new_name, sizeof(new_name), file_names, file_count);
+            result = f_open(&file, new_name, FA_WRITE | FA_CREATE_ALWAYS);
+            if (result != FR_OK)
+
+            {
+                printf("sd problem");
+            }
+            write_wav_header(&file);
+        }
+        break;
+
+        case BUFFER_READY:
+        {
+            do_filter(&filter);
+            write_buffer(&file);
+        }
+        break;
+        case END_RECORD:
+        {
+            finalize_wav_file(&file);
+            f_close(&file); // Zamknięcie pliku po zakończeniu nagrywania
+            // f_unmount("");
+            printf("\nnagranie.wav ready\n");
+        }
+        default:
+            break;
+        }
+    }
+}
+
+void start_recording(PIO pio, uint sm)
+{
+    record_len = 1000;
+    multicore_fifo_push_blocking(1);
+    recording = true;
+    init_dma(pio, sm); // Inicjalizacja DMA do przesyłania danych
+    pio_sm_set_enabled(pio, sm, true);
+}
 // Główna funkcja programu
 int main()
 {
@@ -423,9 +461,7 @@ int main()
     init_pdm(pio, sm); // Inicjalizacja mikrofonu PDM w PIO
     pio_sm_set_enabled(pio, sm, false);
     active_pdm_buffer = pdm_buffer; // Start z bufora 0
-    init_dma(pio, sm);              // Inicjalizacja DMA do przesyłania danych
-    pio_sm_set_enabled(pio, sm, true);
-
+    start_recording(pio, sm);
     while (1)
     {
         sleep_ms(3000);
@@ -435,6 +471,11 @@ int main()
             current_temp = current_temp + 200;
         }
         printf("temp: %d\n", current_temp);
+        if (want_start)
+        {
+            start_recording(pio, sm);
+            want_start = false;
+        }
         // tight_loop_contents(); // Zapewnienie ciągłej pracy
     }
 
