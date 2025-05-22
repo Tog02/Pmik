@@ -51,6 +51,9 @@
 #define YOUR_CLK_PIN 17
 #define BUTTON_PIN 15
 
+#define MAX_FILES 50
+#define MAX_FILENAME_LEN 32 // 8.3 format + null
+
 bool buffer_full = false;
 int kon = 0;
 
@@ -69,6 +72,9 @@ dma_channel_config config;          // configuracja DMA
 
 static btstack_timer_source_t heartbeat;
 static btstack_packet_callback_registration_t hci_event_callback_registration;
+
+char file_names[MAX_FILES][MAX_FILENAME_LEN]; // Tablica nazw plików
+int file_count = 0;
 
 static void heartbeat_handler(struct btstack_timer_source *ts)
 {
@@ -302,6 +308,81 @@ void core1_entry()
     }
     tight_loop_contents();
 }
+
+int list_files(const char *path)
+{
+    FATFS fs;
+    FRESULT res = f_mount(&fs, "", 1); // "" = domyślny napęd, 1 = mount now
+    DIR dir;
+    FILINFO fno;
+    // FRESULT res;
+    int file_count = 0;
+
+    res = f_opendir(&dir, path);
+    if (res != FR_OK)
+    {
+        printf("Failed to open directory: %d\n", res);
+        return -1;
+    }
+
+    while (1)
+    {
+        res = f_readdir(&dir, &fno);
+        if (res != FR_OK || fno.fname[0] == 0)
+            break; // Błąd lub koniec
+        if (fno.fattrib & AM_DIR)
+            continue; // Pomijaj katalogi
+
+        if (file_count < MAX_FILES)
+        {
+            strncpy(file_names[file_count], fno.fname, MAX_FILENAME_LEN - 1);
+            file_names[file_count][MAX_FILENAME_LEN - 1] = '\0'; // Na wszelki wypadek
+            file_count++;
+        }
+        else
+        {
+            break; // Osiągnięto limit
+        }
+    }
+
+    f_closedir(&dir);
+    f_unmount("");
+    return file_count;
+}
+
+bool is_filename_used(int number, char file_names[][MAX_FILENAME_LEN], int file_count)
+{
+    char expected_name[MAX_FILENAME_LEN];
+    snprintf(expected_name, MAX_FILENAME_LEN, "nagranie%d.wav", number);
+
+    for (int i = 0; i < file_count; i++)
+    {
+        if (strcmp(file_names[i], expected_name) == 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void generate_unique_filename_from_list(char *out_name, size_t max_len,
+                                        char file_names[][MAX_FILENAME_LEN], int file_count)
+{
+    int index = 1;
+    while (index < 10000)
+    { // zabezpieczenie
+        if (!is_filename_used(index, file_names, file_count))
+        {
+            snprintf(out_name, max_len, "nagranie%d.wav", index);
+            return;
+        }
+        index++;
+    }
+
+    // Jeśli wszystkie zajęte (bardzo mało prawdopodobne)
+    snprintf(out_name, max_len, "nagranie9999.wav");
+}
+
 // Główna funkcja programu
 int main()
 {
@@ -337,13 +418,13 @@ int main()
     PIO pio = pio0;
     uint sm = 0;
 
+    multicore_launch_core1(core1_entry);
+
     init_pdm(pio, sm); // Inicjalizacja mikrofonu PDM w PIO
     pio_sm_set_enabled(pio, sm, false);
     active_pdm_buffer = pdm_buffer; // Start z bufora 0
     init_dma(pio, sm);              // Inicjalizacja DMA do przesyłania danych
     pio_sm_set_enabled(pio, sm, true);
-
-    multicore_launch_core1(core1_entry);
 
     while (1)
     {
