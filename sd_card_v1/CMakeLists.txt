@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2_w CACHE STRING "Board type")
+set(PICO_BOARD pico2 CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -33,7 +33,7 @@ project(sd_card_v1 C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-add_subdirectory(C:/Users/Lenovo/Desktop/Pmik/sd_library/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src build)
+add_subdirectory(../sd_library/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src build)
 
 # Add executable. Default name is the project name, version 0.1
 
