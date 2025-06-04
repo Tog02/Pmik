@@ -9,9 +9,9 @@
 #define I2C_PORT i2c0
 #define I2C_SDA 8
 #define I2C_SCL 9
-#define BUTTON_PIN 16
-#define BUTTON_UP_PIN 17
-#define BUTTON_PLAY_PIN 18
+#define BUTTON_PIN 19
+#define BUTTON_UP_PIN 20
+#define BUTTON_PLAY_PIN 21
 
 #define TOTAL_RECORDS 8
 #define VISIBLE_LINES 6
@@ -35,33 +35,35 @@ char *records[TOTAL_RECORDS] = {
     "Nagranie 5",
     "Nagranie 6",
     "Nagranie 7",
-    "Nagranie 8"
-};
-
-
+    "Nagranie 8"};
 
 struct render_area frame_area = {
     .start_col = 0,
     .end_col = SSD1306_WIDTH - 1,
     .start_page = 0,
-    .end_page = SSD1306_NUM_PAGES - 1
-};
+    .end_page = SSD1306_NUM_PAGES - 1};
 
 void DisplayRecords(void)
 {
     memset(buf, 0, sizeof(buf));
 
-    if (selectedRecord < scrollOffset) {
+    if (selectedRecord < scrollOffset)
+    {
         scrollOffset = selectedRecord;
-    } else if (selectedRecord >= scrollOffset + VISIBLE_LINES) {
+    }
+    else if (selectedRecord >= scrollOffset + VISIBLE_LINES)
+    {
         scrollOffset = selectedRecord - VISIBLE_LINES + 1;
     }
 
-    for (int i = 0; i < VISIBLE_LINES; i++) {
+    for (int i = 0; i < VISIBLE_LINES; i++)
+    {
         int recordIndex = scrollOffset + i;
-        if (recordIndex >= TOTAL_RECORDS) break;
+        if (recordIndex >= TOTAL_RECORDS)
+            break;
 
-        if (recordIndex == selectedRecord) {
+        if (recordIndex == selectedRecord)
+        {
             WriteChar(buf, 5, i * 8, '1');
         }
         WriteString(buf, 10, i * 8, records[recordIndex]);
@@ -89,31 +91,31 @@ void stopRecording()
     // Wyczyść "REC" napis (nadpisz spacjami)
     WriteString(buf, SSD1306_WIDTH - 28, 0, "    ");
     render(buf, &frame_area);
-  /* stop_adc_recording(); // lub inna Twoja funkcja
-    LoadRecordingsFromSD();
-    DisplayRecords();
-    void LoadRecordingsFromSD()
-{
-    DIR dir;
-    FILINFO fno;
+    /* stop_adc_recording(); // lub inna Twoja funkcja
+      LoadRecordingsFromSD();
+      DisplayRecords();
+      void LoadRecordingsFromSD()
+  {
+      DIR dir;
+      FILINFO fno;
 
-    totalRecords = 0;
+      totalRecords = 0;
 
-    if (f_opendir(&dir, "/recordings") == FR_OK)
-    {
-        while (f_readdir(&dir, &fno) == FR_OK && fno.fname[0] && totalRecords < MAX_RECORDS)
-        {
-            if (!(fno.fattrib & AM_DIR))  // pomiń katalogi
-            {
-                strncpy(records[totalRecords], fno.fname, MAX_FILENAME_LEN - 1);
-                records[totalRecords][MAX_FILENAME_LEN - 1] = '\0';
-                totalRecords++;
-            }
-        }
-        f_closedir(&dir);
-        
-    }
-}*/
+      if (f_opendir(&dir, "/recordings") == FR_OK)
+      {
+          while (f_readdir(&dir, &fno) == FR_OK && fno.fname[0] && totalRecords < MAX_RECORDS)
+          {
+              if (!(fno.fattrib & AM_DIR))  // pomiń katalogi
+              {
+                  strncpy(records[totalRecords], fno.fname, MAX_FILENAME_LEN - 1);
+                  records[totalRecords][MAX_FILENAME_LEN - 1] = '\0';
+                  totalRecords++;
+              }
+          }
+          f_closedir(&dir);
+
+      }
+  }*/
 }
 
 // Debounce timeout callback
@@ -123,7 +125,8 @@ int64_t debounce_timeout_callback(alarm_id_t id, void *user_data)
 
     gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_FALL, true); // Włącz przerwanie ponownie
 
-    if (isRecording && gpio != BUTTON_PLAY_PIN) {
+    if (isRecording && gpio != BUTTON_PLAY_PIN)
+    {
         // Podczas nagrywania ignoruj inne przyciski
         return 0;
     }
@@ -198,7 +201,8 @@ int main()
 
     DisplayRecords();
 
-    while (true) {
+    while (true)
+    {
         tight_loop_contents(); // logika działa w ISR
     }
 }

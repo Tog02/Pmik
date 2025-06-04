@@ -27,7 +27,10 @@
 #include "btstack.h"
 #include "pico/cyw43_arch.h"
 #include "pico/btstack_cyw43.h"
-
+#include "hardware/i2c.h"
+#include "ssd1306_i2c.c"
+#include "hardware/gpio.h"
+#include "hardware/irq.h"
 #include "pdm.pio.h" // Plik PIO do odbioru PDM
 #include "ff.h"      // Biblioteka FatFS do obsługi karty SD
 #include "hw_config.h"
@@ -40,7 +43,16 @@
 #define SAMPLE_RATE 16000                 // Częstotliwość próbkowania (Hz)
 #define BUFFER_SIZE 512                   // Rozmiar bufora wejściowego
 #define PCM_BUFFER_SIZE (BUFFER_SIZE / 4) // Rozmniar bufora wyjściowego
+#define I2C_PORT i2c0
+#define I2C_SDA 8
+#define I2C_SCL 9
+#define BUTTON_PIN 19
+#define BUTTON_UP_PIN 20
+#define BUTTON_PLAY_PIN 21
 
+#define TOTAL_RECORDS 64
+#define VISIBLE_LINES 6
+#define DEBOUNCE_TIME_MS 200
 #define CHANNELS 1
 #define MICFREQ 2048000
 #define DECIMATION 128
@@ -50,14 +62,14 @@
 #define PDM_CLOCK_DIV 37 // Podział zegara PDM, 2MHz
 #define YOUR_PDM_PIN 16
 #define YOUR_CLK_PIN 17
-#define BUTTON_PIN 15
 
 #define MAX_FILES 50
 #define MAX_FILENAME_LEN 32 // 8.3 format + null
 
-bool want_start = false;
+int val;
 
-int record_len = 1000;
+bool want_start = false;
+bool blue_start = false;
 
 bool buffer_full = false;
 bool recording = false;
@@ -65,6 +77,11 @@ bool recording = false;
 uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
 uint32_t pdm_buffer[BUFFER_SIZE];     // Bufor przechowujący surowe dane PDM
 uint32_t pdm_buffer2[BUFFER_SIZE];    // Drugi bufor na dane PDM
+uint8_t buf[SSD1306_BUF_LEN];
+
+int scrollOffset = 0;
+volatile int selectedRecord = 0;
+bool isRecording = false;
 
 volatile uint32_t *active_pdm_buffer; // aktualny bufor używany przez DMA
 volatile uint32_t *ready_pdm_buffer;  // gotowy bufor do przetwarzania
@@ -103,6 +120,133 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
     btstack_run_loop_set_timer(ts, HEARTBEAT_PERIOD_MS);
     btstack_run_loop_add_timer(ts);
 }
+struct render_area frame_area = {
+    .start_col = 0,
+    .end_col = SSD1306_WIDTH - 1,
+    .start_page = 0,
+    .end_page = SSD1306_NUM_PAGES - 1};
+
+void DisplayRecords(void)
+{
+    memset(buf, 0, sizeof(buf));
+
+    if (selectedRecord < scrollOffset)
+    {
+        scrollOffset = selectedRecord;
+    }
+    else if (selectedRecord >= scrollOffset + VISIBLE_LINES)
+    {
+        scrollOffset = selectedRecord - VISIBLE_LINES + 1;
+    }
+
+    for (int i = 0; i < VISIBLE_LINES; i++)
+    {
+        int recordIndex = scrollOffset + i;
+        if (recordIndex >= TOTAL_RECORDS)
+            break;
+
+        if (recordIndex == selectedRecord)
+        {
+            WriteChar(buf, 5, i * 8, '1');
+        }
+        WriteString(buf, 10, i * 8, file_names[recordIndex]);
+    }
+
+    render(buf, &frame_area);
+}
+
+void startRecording(int recordIndex)
+{
+    printf(" ROZPOCZYNANIE NAGRANIA DO SLOTU %d (%s)\n", recordIndex, file_names[recordIndex]);
+    want_start = true;
+    // Wyświetl info na OLED
+    memset(buf, 0, sizeof(buf));
+    WriteString(buf, 0, 0, "Nagrywanie...");
+    WriteString(buf, 0, 16, file_names[recordIndex]);
+
+    render(buf, &frame_area);
+}
+
+void stopRecording()
+{
+    DisplayRecords();
+    recording = 0;
+    // Wyczyść "REC" napis (nadpisz spacjami)
+    // WriteString(buf, SSD1306_WIDTH - 28, 0, "    ");
+    render(buf, &frame_area);
+    /* stop_adc_recording(); // lub inna Twoja funkcja
+      LoadRecordingsFromSD();
+      DisplayRecords();
+      void LoadRecordingsFromSD()
+  {
+      DIR dir;
+      FILINFO fno;
+
+      totalRecords = 0;
+
+      if (f_opendir(&dir, "/recordings") == FR_OK)
+      {
+          while (f_readdir(&dir, &fno) == FR_OK && fno.fname[0] && totalRecords < MAX_RECORDS)
+          {
+              if (!(fno.fattrib & AM_DIR))  // pomiń katalogi
+              {
+                  strncpy(records[totalRecords], fno.fname, MAX_FILENAME_LEN - 1);
+                  records[totalRecords][MAX_FILENAME_LEN - 1] = '\0';
+                  totalRecords++;
+              }
+          }
+          f_closedir(&dir);
+
+      }
+  }*/
+}
+
+// Debounce timeout callback
+int64_t debounce_timeout_callback(alarm_id_t id, void *user_data)
+{
+    uint gpio = (uint)(uintptr_t)user_data;
+
+    gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_FALL, true); // Włącz przerwanie ponownie
+
+    if (isRecording && gpio != BUTTON_PLAY_PIN)
+    {
+        // Podczas nagrywania ignoruj inne przyciski
+        return 0;
+    }
+
+    if (gpio == BUTTON_PIN)
+    {
+        selectedRecord = (selectedRecord + 1) % TOTAL_RECORDS;
+        DisplayRecords();
+    }
+    else if (gpio == BUTTON_UP_PIN)
+    {
+        selectedRecord = (selectedRecord == 0) ? (TOTAL_RECORDS - 1) : (selectedRecord - 1);
+        DisplayRecords();
+    }
+    else if (gpio == BUTTON_PLAY_PIN)
+    {
+        if (isRecording)
+        {
+            stopRecording();
+            isRecording = false;
+        }
+        else
+        {
+            startRecording(selectedRecord);
+            isRecording = true;
+        }
+    }
+
+    return 0;
+}
+
+// ISR: wyłącza przerwanie i uruchamia debounce
+void button_isr(uint gpio, uint32_t events)
+{
+    gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_FALL, false);
+    add_alarm_in_ms(DEBOUNCE_TIME_MS, debounce_timeout_callback, (void *)(uintptr_t)gpio, false);
+}
 
 // Obsługa przerwania DMA
 void dma_handler()
@@ -137,14 +281,11 @@ void dma_handler()
         else
         {
             multicore_fifo_push_blocking(3);
+            stopRecording();
         }
 
         //**************************** */ to throw away
-        record_len--;
-        if (record_len < 0)
-        {
-            recording = false;
-        }
+
         //**************************** */
     }
 }
@@ -314,6 +455,7 @@ int list_files(const char *path)
     }
 
     f_closedir(&dir);
+    val = file_count + 1;
     // f_unmount("");
     return file_count;
 }
@@ -359,6 +501,7 @@ void core1_entry()
     UINT bw;
     FRESULT result;
     f_mount(&fs, "", 1);
+    list_files("/");
 
     TPDMFilter_InitStruct filter;
     filter.LP_HZ = 8000;
@@ -415,7 +558,7 @@ void core1_entry()
 
 void start_recording(PIO pio, uint sm)
 {
-    record_len = 1000;
+
     multicore_fifo_push_blocking(1);
     recording = true;
     init_dma(pio, sm); // Inicjalizacja DMA do przesyłania danych
@@ -431,6 +574,38 @@ int main()
 
     l2cap_init();
     sm_init();
+
+    stdio_init_all();
+
+    // OLED i I2C init
+    gpio_init(I2C_SDA);
+    gpio_init(I2C_SCL);
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA);
+    gpio_pull_up(I2C_SCL);
+
+    i2c_init(I2C_PORT, 400 * 1000);
+    SSD1306_init();
+    calc_render_area_buflen(&frame_area);
+
+    // GPIO init
+    gpio_init(BUTTON_PIN);
+    gpio_set_dir(BUTTON_PIN, GPIO_IN);
+    gpio_pull_up(BUTTON_PIN);
+
+    gpio_init(BUTTON_UP_PIN);
+    gpio_set_dir(BUTTON_UP_PIN, GPIO_IN);
+    gpio_pull_up(BUTTON_UP_PIN);
+
+    gpio_init(BUTTON_PLAY_PIN);
+    gpio_set_dir(BUTTON_PLAY_PIN, GPIO_IN);
+    gpio_pull_up(BUTTON_PLAY_PIN);
+
+    // ISR z debounce
+    gpio_set_irq_enabled_with_callback(BUTTON_PIN, GPIO_IRQ_EDGE_FALL, true, &button_isr);
+    gpio_set_irq_enabled(BUTTON_UP_PIN, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BUTTON_PLAY_PIN, GPIO_IRQ_EDGE_FALL, true);
 
     att_server_init(profile_data, att_read_callback, att_write_callback);
 
@@ -450,7 +625,7 @@ int main()
     hci_power_control(HCI_POWER_ON);
 
     printf("Hello world");
-    sleep_ms(5000);
+    sleep_ms(1000);
     printf("Hello again");
 
     PIO pio = pio0;
@@ -461,21 +636,31 @@ int main()
     init_pdm(pio, sm); // Inicjalizacja mikrofonu PDM w PIO
     pio_sm_set_enabled(pio, sm, false);
     active_pdm_buffer = pdm_buffer; // Start z bufora 0
-    start_recording(pio, sm);
+    // start_recording(pio, sm);
+    sleep_ms(1000);
+    DisplayRecords();
     while (1)
     {
-        sleep_ms(3000);
-        if (le_notification_enabled)
-        {
-            att_server_request_can_send_now_event(con_handle);
-            current_temp = current_temp + 200;
-        }
+
         printf("temp: %d\n", current_temp);
+        if (blue_start)
+        {
+            startRecording(selectedRecord);
+            blue_start = 0;
+        }
+
         if (want_start)
         {
             start_recording(pio, sm);
             want_start = false;
+            if (le_notification_enabled)
+            {
+
+                att_server_request_can_send_now_event(con_handle);
+                // current_temp = current_temp + 200;
+            }
         }
+        sleep_ms(1000);
         // tight_loop_contents(); // Zapewnienie ciągłej pracy
     }
 

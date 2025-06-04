@@ -13,7 +13,7 @@
 
 #define APP_AD_FLAGS 0x06
 
-extern bool want_start;
+extern bool blue_start;
 
 static uint8_t adv_data[] = {
     // Flags general discoverable
@@ -56,7 +56,8 @@ int le_notification_enabled;
 hci_con_handle_t con_handle;
 uint16_t current_temp;
 const char *value = "hello";
-int val = 42;
+extern int val;
+extern bool recording;
 char message[50];
 
 void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
@@ -94,8 +95,8 @@ void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint
         le_notification_enabled = 0;
         break;
     case ATT_EVENT_CAN_SEND_NOW:
-        val++;
-        sprintf(message, "Wartosc%d", val);
+        val;
+        sprintf(message, "Nowe nagranie%d", val);
         att_server_notify(con_handle, ATT_CHARACTERISTIC_12345678_1234_5678_1234_56789abcdef1_01_VALUE_HANDLE, (const uint8_t *)message, strlen(message));
         break;
     default:
@@ -131,9 +132,14 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
 
         printf("Received over BLE: %s\n", received_data);
         char znak = *"S";
+        char koniec = *"P";
         if (received_data[0] == znak)
         {
-            want_start = true;
+            blue_start = true;
+        }
+        if (received_data[0] == koniec)
+        {
+            recording = false;
         }
     }
 

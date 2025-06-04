@@ -1,4 +1,4 @@
-// Padded and checksummed version of: C:/Users/admin/OneDrive/Pulpit/Pmik/Pmik/Monitorek/build/pico-sdk/src/rp2350/boot_stage2/bs2_default.bin
+// Padded and checksummed version of: C:/Users/Lenovo/Desktop/Pmik/Monitorek/build/pico-sdk/src/rp2350/boot_stage2/bs2_default.bin
 
 .cpu cortex-m0plus
 .thumb
