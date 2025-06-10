@@ -66,9 +66,10 @@
 #define MAX_FILES 50
 #define MAX_FILENAME_LEN 32 // 8.3 format + null
 
-int val;
+int val;            // Wartość wyświetlana przez bluetooth
+bool was_recording; // Przy zakończeniu nagrywania
 
-bool want_start = false;
+bool want_start = false; // flaga rozpocznij nagrywanie
 bool blue_start = false;
 
 bool buffer_full = false;
@@ -77,7 +78,7 @@ bool recording = false;
 uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
 uint32_t pdm_buffer[BUFFER_SIZE];     // Bufor przechowujący surowe dane PDM
 uint32_t pdm_buffer2[BUFFER_SIZE];    // Drugi bufor na dane PDM
-uint8_t buf[SSD1306_BUF_LEN];
+uint8_t buf[SSD1306_BUF_LEN];         // Bufor dla ekranu
 
 int scrollOffset = 0;
 volatile int selectedRecord = 0;
@@ -102,14 +103,6 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
 {
     static uint32_t counter = 0;
     counter++;
-
-    // Update the temp every 10s
-    /*if (counter % 10 == 0) {
-        poll_temp();
-        if (le_notification_enabled) {
-            att_server_request_can_send_now_event(con_handle);
-        }
-    }*/
 
     // Invert the led
     static int led_on = true;
@@ -255,7 +248,16 @@ void dma_handler()
     if (ints & (1u << dma_channel))
     {
         dma_hw->ints0 = 1u << dma_channel; // czyścimy flagę
-        multicore_fifo_push_blocking(2);   // Wysłanie sygnału do rdzenia 1 //
+        if (recording)
+        {
+            was_recording = true;
+            multicore_fifo_push_blocking(BUFFER_READY); // Wysłanie sygnału do rdzenia 1 //
+        }
+        else
+        {
+            multicore_fifo_push_blocking(BUFFER_READY_NOT_RECORDING); // Wysłanie sygnału do
+        }
+
         // dma_complete = true;
 
         // Bufor właśnie został wypełniony przez DMA, sygnalizuj do rdzenia 1
@@ -266,20 +268,19 @@ void dma_handler()
             active_pdm_buffer = pdm_buffer2;
         else
             active_pdm_buffer = pdm_buffer;
-        if (recording)
-        {
 
-            dma_channel_configure(
-                dma_channel,
-                &config,                   // NULL -> używa poprzedniej konfiguracji
-                (void *)active_pdm_buffer, // Nowy bufor docelowy (lub ten sam, jeśli nadpisujesz)
-                &pio0->rxf[0],             // Źródło (FIFO z PIO)
-                BUFFER_SIZE,               // Ilość próbek
-                true                       // Start natychmiastowy
-            );
-        }
-        else
+        dma_channel_configure(
+            dma_channel,
+            &config,                   // NULL -> używa poprzedniej konfiguracji
+            (void *)active_pdm_buffer, // Nowy bufor docelowy (lub ten sam, jeśli nadpisujesz)
+            &pio0->rxf[0],             // Źródło (FIFO z PIO)
+            BUFFER_SIZE,               // Ilość próbek
+            true                       // Start natychmiastowy
+        );
+
+        if ((!recording) && was_recording)
         {
+            was_recording = false;
             multicore_fifo_push_blocking(3);
             stopRecording();
         }
@@ -412,7 +413,7 @@ void do_filter(TPDMFilter_InitStruct *filter)
 void write_buffer(FIL *file)
 {
     UINT bw;
-    FRESULT result = f_write(file, pcm_buffer, sizeof(pcm_buffer), &bw);
+    FRESULT result = f_write(file, pcm_buffer, sizeof(pcm_buffer), &bw); //
     if (result != FR_OK)
     {
         printf("sd write problem\n");
@@ -539,8 +540,11 @@ void core1_entry()
 
         case BUFFER_READY:
         {
+            gpio_put(15, 1);
             do_filter(&filter);
+
             write_buffer(&file);
+            gpio_put(15, 0);
         }
         break;
         case END_RECORD:
@@ -550,19 +554,31 @@ void core1_entry()
             // f_unmount("");
             printf("\nnagranie.wav ready\n");
         }
+        break;
+
+        case BUFFER_READY_NOT_RECORDING:
+        {
+            do_filter(&filter);
+        }
+        break;
+
         default:
             break;
         }
     }
 }
 
-void start_recording(PIO pio, uint sm)
+void start_listenig(PIO pio, uint sm)
 {
 
-    multicore_fifo_push_blocking(1);
-    recording = true;
+    //
     init_dma(pio, sm); // Inicjalizacja DMA do przesyłania danych
     pio_sm_set_enabled(pio, sm, true);
+}
+void start_recording()
+{
+    multicore_fifo_push_blocking(1);
+    recording = true;
 }
 // Główna funkcja programu
 int main()
@@ -576,6 +592,9 @@ int main()
     sm_init();
 
     stdio_init_all();
+
+    gpio_init(15);
+    gpio_set_dir(15, GPIO_OUT);
 
     // OLED i I2C init
     gpio_init(I2C_SDA);
@@ -632,17 +651,18 @@ int main()
     uint sm = 0;
 
     multicore_launch_core1(core1_entry);
-
+    was_recording = false;
     init_pdm(pio, sm); // Inicjalizacja mikrofonu PDM w PIO
     pio_sm_set_enabled(pio, sm, false);
     active_pdm_buffer = pdm_buffer; // Start z bufora 0
     // start_recording(pio, sm);
     sleep_ms(1000);
     DisplayRecords();
+    start_listenig(pio, sm);
     while (1)
     {
 
-        printf("temp: %d\n", current_temp);
+        // printf("temp: %d\n", current_temp);
         if (blue_start)
         {
             startRecording(selectedRecord);
@@ -651,7 +671,7 @@ int main()
 
         if (want_start)
         {
-            start_recording(pio, sm);
+            start_recording();
             want_start = false;
             if (le_notification_enabled)
             {
@@ -660,7 +680,7 @@ int main()
                 // current_temp = current_temp + 200;
             }
         }
-        sleep_ms(1000);
+        sleep_ms(1000); // Sprawdzić wfi();
         // tight_loop_contents(); // Zapewnienie ciągłej pracy
     }
 

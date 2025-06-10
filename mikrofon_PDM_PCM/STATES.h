@@ -1,3 +1,4 @@
 #define NEW_RECORD 1
 #define BUFFER_READY 2
 #define END_RECORD 3
+#define BUFFER_READY_NOT_RECORDING 4
