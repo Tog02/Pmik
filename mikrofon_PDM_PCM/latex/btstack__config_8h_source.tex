@@ -1,0 +1,63 @@
+\doxysection{btstack\+\_\+config.\+h}
+\hypertarget{btstack__config_8h_source}{}\label{btstack__config_8h_source}\mbox{\hyperlink{btstack__config_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ \_PICO\_BTSTACK\_BTSTACK\_CONFIG\_H}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ \_PICO\_BTSTACK\_BTSTACK\_CONFIG\_H}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#ifndef\ ENABLE\_BLE}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#error\ Please\ link\ to\ pico\_btstack\_ble}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ BTstack\ features\ that\ can\ be\ enabled}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#define\ ENABLE\_LE\_PERIPHERAL}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#define\ ENABLE\_LOG\_INFO}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#define\ ENABLE\_LOG\_ERROR}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#define\ ENABLE\_PRINTF\_HEXDUMP}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ for\ the\ client}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#if\ RUNNING\_AS\_CLIENT}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ENABLE\_LE\_CENTRAL}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#define\ MAX\_NR\_GATT\_CLIENTS\ 1}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#define\ MAX\_NR\_GATT\_CLIENTS\ 0}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ BTstack\ configuration.\ buffers,\ sizes,\ ...}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#define\ HCI\_OUTGOING\_PRE\_BUFFER\_SIZE\ 4}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#define\ HCI\_ACL\_PAYLOAD\_SIZE\ (255\ +\ 4)}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#define\ HCI\_ACL\_CHUNK\_SIZE\_ALIGNMENT\ 4}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#define\ MAX\_NR\_HCI\_CONNECTIONS\ 1}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#define\ MAX\_NR\_SM\_LOOKUP\_ENTRIES\ 3}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#define\ MAX\_NR\_WHITELIST\_ENTRIES\ 16}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#define\ MAX\_NR\_LE\_DEVICE\_DB\_ENTRIES\ 16}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ Limit\ number\ of\ ACL/SCO\ Buffer\ to\ use\ by\ stack\ to\ avoid\ cyw43\ shared\ bus\ overrun}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#define\ MAX\_NR\_CONTROLLER\_ACL\_BUFFERS\ 3}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#define\ MAX\_NR\_CONTROLLER\_SCO\_PACKETS\ 3}}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ Enable\ and\ configure\ HCI\ Controller\ to\ Host\ Flow\ Control\ to\ avoid\ cyw43\ shared\ bus\ overrun}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#define\ ENABLE\_HCI\_CONTROLLER\_TO\_HOST\_FLOW\_CONTROL}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#define\ HCI\_HOST\_ACL\_PACKET\_LEN\ (255+4)}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#define\ HCI\_HOST\_ACL\_PACKET\_NUM\ 3}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#define\ HCI\_HOST\_SCO\_PACKET\_LEN\ 120}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ HCI\_HOST\_SCO\_PACKET\_NUM\ 3}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ Link\ Key\ DB\ and\ LE\ Device\ DB\ using\ TLV\ on\ top\ of\ Flash\ Sector\ interface}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#define\ NVM\_NUM\_DEVICE\_DB\_ENTRIES\ 16}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#define\ NVM\_NUM\_LINK\_KEYS\ 16}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ We\ don't\ give\ btstack\ a\ malloc,\ so\ use\ a\ fixed-\/size\ ATT\ DB.}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#define\ MAX\_ATT\_DB\_SIZE\ 512}}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ BTstack\ HAL\ configuration}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#define\ HAVE\_EMBEDDED\_TIME\_MS}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ map\ btstack\_assert\ onto\ Pico\ SDK\ assert()}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#define\ HAVE\_ASSERT}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ Some\ USB\ dongles\ take\ longer\ to\ respond\ to\ HCI\ reset\ (e.g.\ BCM20702A).}}
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#define\ HCI\_RESET\_RESEND\_TIMEOUT\_MS\ 1000}}
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#define\ ENABLE\_SOFTWARE\_AES128}}
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#define\ ENABLE\_MICRO\_ECC\_FOR\_LE\_SECURE\_CONNECTIONS}}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ MICROPY\_INCLUDED\_EXTMOD\_BTSTACK\_BTSTACK\_CONFIG\_H}}
+
+\end{DoxyCode}

@@ -1,0 +1,289 @@
+\doxysection{ssd1306\+\_\+i2c.\+c File Reference}
+\hypertarget{ssd1306__i2c_8c}{}\label{ssd1306__i2c_8c}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include $<$string.\+h$>$}\newline
+{\ttfamily \#include $<$stdlib.\+h$>$}\newline
+{\ttfamily \#include $<$ctype.\+h$>$}\newline
+{\ttfamily \#include "{}pico/stdlib.\+h"{}}\newline
+{\ttfamily \#include "{}pico/binary\+\_\+info.\+h"{}}\newline
+{\ttfamily \#include "{}hardware/i2c.\+h"{}}\newline
+{\ttfamily \#include "{}ssd1306\+\_\+font.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structrender__area}{render\+\_\+area}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7}{SSD1306\+\_\+\+HEIGHT}}~64
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b}{SSD1306\+\_\+\+WIDTH}}~128
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a40b6cafd3649547b7cf9629607d04a28}{SSD1306\+\_\+\+I2\+C\+\_\+\+ADDR}}~\+\_\+u(0x3C)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a30a8e1bf2fa09e047987d9a5aeda5207}{SSD1306\+\_\+\+I2\+C\+\_\+\+CLK}}~3000
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a4c391bc8411c7493dd8c28ed5611f2de}{SSD1306\+\_\+\+SET\+\_\+\+MEM\+\_\+\+MODE}}~\+\_\+u(0x20)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a7337bc8e876beda93b26c1a6782ad397}{SSD1306\+\_\+\+SET\+\_\+\+COL\+\_\+\+ADDR}}~\+\_\+u(0x21)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_ac3688afcf61a4ffccb0ee6ef165dd7a6}{SSD1306\+\_\+\+SET\+\_\+\+PAGE\+\_\+\+ADDR}}~\+\_\+u(0x22)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a056353e4b606d157a0afa9485d0b4e83}{SSD1306\+\_\+\+SET\+\_\+\+HORIZ\+\_\+\+SCROLL}}~\+\_\+u(0x26)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a22df8b0e886f3f4bd1e4e89ea6e29a99}{SSD1306\+\_\+\+SET\+\_\+\+SCROLL}}~\+\_\+u(0x2E)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a1c1807ddf3965c29141c04eb97f1b9aa}{SSD1306\+\_\+\+SET\+\_\+\+DISP\+\_\+\+START\+\_\+\+LINE}}~\+\_\+u(0x40)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_afe8311a1cf58658999df626f089df45a}{SSD1306\+\_\+\+SET\+\_\+\+CONTRAST}}~\+\_\+u(0x81)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_ac3c4d8ff67b89782a97b874690f37ca7}{SSD1306\+\_\+\+SET\+\_\+\+CHARGE\+\_\+\+PUMP}}~\+\_\+u(0x8D)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a2b8dd63e62579bbb3e7f0f0701645b37}{SSD1306\+\_\+\+SET\+\_\+\+SEG\+\_\+\+REMAP}}~\+\_\+u(0x\+A0)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a589630f17275ac7d7bde0f79376f0ea0}{SSD1306\+\_\+\+SET\+\_\+\+ENTIRE\+\_\+\+ON}}~\+\_\+u(0x\+A4)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_ad35953c11a98494afd4799a1fc72d683}{SSD1306\+\_\+\+SET\+\_\+\+ALL\+\_\+\+ON}}~\+\_\+u(0x\+A5)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_acebc478c4f4ca52ba544a80373493785}{SSD1306\+\_\+\+SET\+\_\+\+NORM\+\_\+\+DISP}}~\+\_\+u(0x\+A6)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a7e6e5c44e6fe96312f497386445600a0}{SSD1306\+\_\+\+SET\+\_\+\+INV\+\_\+\+DISP}}~\+\_\+u(0x\+A7)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a0b93a82ad4a012d6f45f41e0f6f8004a}{SSD1306\+\_\+\+SET\+\_\+\+MUX\+\_\+\+RATIO}}~\+\_\+u(0x\+A8)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a0c52351f68d671acfdd4554a6995097a}{SSD1306\+\_\+\+SET\+\_\+\+DISP}}~\+\_\+u(0x\+AE)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_ac087c51071227a65eba3d2b5cbb36272}{SSD1306\+\_\+\+SET\+\_\+\+COM\+\_\+\+OUT\+\_\+\+DIR}}~\+\_\+u(0x\+C0)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a44f13f7779e00daa7d2dc0b6b2955c99}{SSD1306\+\_\+\+SET\+\_\+\+COM\+\_\+\+OUT\+\_\+\+DIR\+\_\+\+FLIP}}~\+\_\+u(0x\+C0)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a39e81bacbdd49cea30183201da4d3a44}{SSD1306\+\_\+\+SET\+\_\+\+DISP\+\_\+\+OFFSET}}~\+\_\+u(0x\+D3)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a563f4ab583de90b92903a718987558e2}{SSD1306\+\_\+\+SET\+\_\+\+DISP\+\_\+\+CLK\+\_\+\+DIV}}~\+\_\+u(0x\+D5)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a9e285eddc84b360c27b56505bed3742b}{SSD1306\+\_\+\+SET\+\_\+\+PRECHARGE}}~\+\_\+u(0x\+D9)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a729363a10befbb7c0759e51234fee9bf}{SSD1306\+\_\+\+SET\+\_\+\+COM\+\_\+\+PIN\+\_\+\+CFG}}~\+\_\+u(0x\+DA)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a7a38076df0ee56420a2ca71a3d4a1f23}{SSD1306\+\_\+\+SET\+\_\+\+VCOM\+\_\+\+DESEL}}~\+\_\+u(0x\+DB)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_acc48c4fab3e29b6a3b2e9530cdf681af}{SSD1306\+\_\+\+PAGE\+\_\+\+HEIGHT}}~\+\_\+u(8)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a7c6f188acf37426f4cfe0ac73f11fb7d}{SSD1306\+\_\+\+NUM\+\_\+\+PAGES}}~(\mbox{\hyperlink{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7}{SSD1306\+\_\+\+HEIGHT}} / \mbox{\hyperlink{ssd1306__i2c_8c_acc48c4fab3e29b6a3b2e9530cdf681af}{SSD1306\+\_\+\+PAGE\+\_\+\+HEIGHT}})
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_aafee566fd157739d02b21fa6eec3e6cf}{SSD1306\+\_\+\+BUF\+\_\+\+LEN}}~(\mbox{\hyperlink{ssd1306__i2c_8c_a7c6f188acf37426f4cfe0ac73f11fb7d}{SSD1306\+\_\+\+NUM\+\_\+\+PAGES}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b}{SSD1306\+\_\+\+WIDTH}})
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a6d52e17f2cbe857715b636ad0c8b6270}{SSD1306\+\_\+\+WRITE\+\_\+\+MODE}}~\+\_\+u(0x\+FE)
+\item 
+\#define \mbox{\hyperlink{ssd1306__i2c_8c_a7729554eaf456fe33ec9a6a0310fe2bd}{SSD1306\+\_\+\+READ\+\_\+\+MODE}}~\+\_\+u(0x\+FF)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{ssd1306__i2c_8c_a77408bc9d298f7e429c1744825fff1fd}{calc\+\_\+render\+\_\+area\+\_\+buflen}} (struct \mbox{\hyperlink{structrender__area}{render\+\_\+area}} \texorpdfstring{$\ast$}{*}area)
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{ssd1306__i2c_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{ssd1306__i2c_8c_aafee566fd157739d02b21fa6eec3e6cf}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_BUF\_LEN@{SSD1306\_BUF\_LEN}}
+\index{SSD1306\_BUF\_LEN@{SSD1306\_BUF\_LEN}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_BUF\_LEN}{SSD1306\_BUF\_LEN}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_aafee566fd157739d02b21fa6eec3e6cf} 
+\#define SSD1306\+\_\+\+BUF\+\_\+\+LEN~(\mbox{\hyperlink{ssd1306__i2c_8c_a7c6f188acf37426f4cfe0ac73f11fb7d}{SSD1306\+\_\+\+NUM\+\_\+\+PAGES}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b}{SSD1306\+\_\+\+WIDTH}})}
+
+\Hypertarget{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_HEIGHT@{SSD1306\_HEIGHT}}
+\index{SSD1306\_HEIGHT@{SSD1306\_HEIGHT}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_HEIGHT}{SSD1306\_HEIGHT}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7} 
+\#define SSD1306\+\_\+\+HEIGHT~64}
+
+Copyright (c) 2021 Raspberry Pi (Trading) Ltd.
+
+SPDX-\/\+License-\/\+Identifier\+: BSD-\/3-\/\+Clause \Hypertarget{ssd1306__i2c_8c_a40b6cafd3649547b7cf9629607d04a28}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_I2C\_ADDR@{SSD1306\_I2C\_ADDR}}
+\index{SSD1306\_I2C\_ADDR@{SSD1306\_I2C\_ADDR}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_I2C\_ADDR}{SSD1306\_I2C\_ADDR}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a40b6cafd3649547b7cf9629607d04a28} 
+\#define SSD1306\+\_\+\+I2\+C\+\_\+\+ADDR~\+\_\+u(0x3C)}
+
+\Hypertarget{ssd1306__i2c_8c_a30a8e1bf2fa09e047987d9a5aeda5207}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_I2C\_CLK@{SSD1306\_I2C\_CLK}}
+\index{SSD1306\_I2C\_CLK@{SSD1306\_I2C\_CLK}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_I2C\_CLK}{SSD1306\_I2C\_CLK}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a30a8e1bf2fa09e047987d9a5aeda5207} 
+\#define SSD1306\+\_\+\+I2\+C\+\_\+\+CLK~3000}
+
+\Hypertarget{ssd1306__i2c_8c_a7c6f188acf37426f4cfe0ac73f11fb7d}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_NUM\_PAGES@{SSD1306\_NUM\_PAGES}}
+\index{SSD1306\_NUM\_PAGES@{SSD1306\_NUM\_PAGES}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_NUM\_PAGES}{SSD1306\_NUM\_PAGES}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a7c6f188acf37426f4cfe0ac73f11fb7d} 
+\#define SSD1306\+\_\+\+NUM\+\_\+\+PAGES~(\mbox{\hyperlink{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7}{SSD1306\+\_\+\+HEIGHT}} / \mbox{\hyperlink{ssd1306__i2c_8c_acc48c4fab3e29b6a3b2e9530cdf681af}{SSD1306\+\_\+\+PAGE\+\_\+\+HEIGHT}})}
+
+\Hypertarget{ssd1306__i2c_8c_acc48c4fab3e29b6a3b2e9530cdf681af}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_PAGE\_HEIGHT@{SSD1306\_PAGE\_HEIGHT}}
+\index{SSD1306\_PAGE\_HEIGHT@{SSD1306\_PAGE\_HEIGHT}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_PAGE\_HEIGHT}{SSD1306\_PAGE\_HEIGHT}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_acc48c4fab3e29b6a3b2e9530cdf681af} 
+\#define SSD1306\+\_\+\+PAGE\+\_\+\+HEIGHT~\+\_\+u(8)}
+
+\Hypertarget{ssd1306__i2c_8c_a7729554eaf456fe33ec9a6a0310fe2bd}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_READ\_MODE@{SSD1306\_READ\_MODE}}
+\index{SSD1306\_READ\_MODE@{SSD1306\_READ\_MODE}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_READ\_MODE}{SSD1306\_READ\_MODE}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a7729554eaf456fe33ec9a6a0310fe2bd} 
+\#define SSD1306\+\_\+\+READ\+\_\+\+MODE~\+\_\+u(0x\+FF)}
+
+\Hypertarget{ssd1306__i2c_8c_ad35953c11a98494afd4799a1fc72d683}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_ALL\_ON@{SSD1306\_SET\_ALL\_ON}}
+\index{SSD1306\_SET\_ALL\_ON@{SSD1306\_SET\_ALL\_ON}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_ALL\_ON}{SSD1306\_SET\_ALL\_ON}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_ad35953c11a98494afd4799a1fc72d683} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+ALL\+\_\+\+ON~\+\_\+u(0x\+A5)}
+
+\Hypertarget{ssd1306__i2c_8c_ac3c4d8ff67b89782a97b874690f37ca7}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_CHARGE\_PUMP@{SSD1306\_SET\_CHARGE\_PUMP}}
+\index{SSD1306\_SET\_CHARGE\_PUMP@{SSD1306\_SET\_CHARGE\_PUMP}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_CHARGE\_PUMP}{SSD1306\_SET\_CHARGE\_PUMP}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_ac3c4d8ff67b89782a97b874690f37ca7} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+CHARGE\+\_\+\+PUMP~\+\_\+u(0x8D)}
+
+\Hypertarget{ssd1306__i2c_8c_a7337bc8e876beda93b26c1a6782ad397}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_COL\_ADDR@{SSD1306\_SET\_COL\_ADDR}}
+\index{SSD1306\_SET\_COL\_ADDR@{SSD1306\_SET\_COL\_ADDR}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_COL\_ADDR}{SSD1306\_SET\_COL\_ADDR}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a7337bc8e876beda93b26c1a6782ad397} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+COL\+\_\+\+ADDR~\+\_\+u(0x21)}
+
+\Hypertarget{ssd1306__i2c_8c_ac087c51071227a65eba3d2b5cbb36272}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_COM\_OUT\_DIR@{SSD1306\_SET\_COM\_OUT\_DIR}}
+\index{SSD1306\_SET\_COM\_OUT\_DIR@{SSD1306\_SET\_COM\_OUT\_DIR}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_COM\_OUT\_DIR}{SSD1306\_SET\_COM\_OUT\_DIR}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_ac087c51071227a65eba3d2b5cbb36272} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+COM\+\_\+\+OUT\+\_\+\+DIR~\+\_\+u(0x\+C0)}
+
+\Hypertarget{ssd1306__i2c_8c_a44f13f7779e00daa7d2dc0b6b2955c99}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_COM\_OUT\_DIR\_FLIP@{SSD1306\_SET\_COM\_OUT\_DIR\_FLIP}}
+\index{SSD1306\_SET\_COM\_OUT\_DIR\_FLIP@{SSD1306\_SET\_COM\_OUT\_DIR\_FLIP}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_COM\_OUT\_DIR\_FLIP}{SSD1306\_SET\_COM\_OUT\_DIR\_FLIP}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a44f13f7779e00daa7d2dc0b6b2955c99} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+COM\+\_\+\+OUT\+\_\+\+DIR\+\_\+\+FLIP~\+\_\+u(0x\+C0)}
+
+\Hypertarget{ssd1306__i2c_8c_a729363a10befbb7c0759e51234fee9bf}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_COM\_PIN\_CFG@{SSD1306\_SET\_COM\_PIN\_CFG}}
+\index{SSD1306\_SET\_COM\_PIN\_CFG@{SSD1306\_SET\_COM\_PIN\_CFG}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_COM\_PIN\_CFG}{SSD1306\_SET\_COM\_PIN\_CFG}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a729363a10befbb7c0759e51234fee9bf} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+COM\+\_\+\+PIN\+\_\+\+CFG~\+\_\+u(0x\+DA)}
+
+\Hypertarget{ssd1306__i2c_8c_afe8311a1cf58658999df626f089df45a}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_CONTRAST@{SSD1306\_SET\_CONTRAST}}
+\index{SSD1306\_SET\_CONTRAST@{SSD1306\_SET\_CONTRAST}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_CONTRAST}{SSD1306\_SET\_CONTRAST}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_afe8311a1cf58658999df626f089df45a} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+CONTRAST~\+\_\+u(0x81)}
+
+\Hypertarget{ssd1306__i2c_8c_a0c52351f68d671acfdd4554a6995097a}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_DISP@{SSD1306\_SET\_DISP}}
+\index{SSD1306\_SET\_DISP@{SSD1306\_SET\_DISP}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_DISP}{SSD1306\_SET\_DISP}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a0c52351f68d671acfdd4554a6995097a} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+DISP~\+\_\+u(0x\+AE)}
+
+\Hypertarget{ssd1306__i2c_8c_a563f4ab583de90b92903a718987558e2}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_DISP\_CLK\_DIV@{SSD1306\_SET\_DISP\_CLK\_DIV}}
+\index{SSD1306\_SET\_DISP\_CLK\_DIV@{SSD1306\_SET\_DISP\_CLK\_DIV}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_DISP\_CLK\_DIV}{SSD1306\_SET\_DISP\_CLK\_DIV}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a563f4ab583de90b92903a718987558e2} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+DISP\+\_\+\+CLK\+\_\+\+DIV~\+\_\+u(0x\+D5)}
+
+\Hypertarget{ssd1306__i2c_8c_a39e81bacbdd49cea30183201da4d3a44}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_DISP\_OFFSET@{SSD1306\_SET\_DISP\_OFFSET}}
+\index{SSD1306\_SET\_DISP\_OFFSET@{SSD1306\_SET\_DISP\_OFFSET}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_DISP\_OFFSET}{SSD1306\_SET\_DISP\_OFFSET}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a39e81bacbdd49cea30183201da4d3a44} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+DISP\+\_\+\+OFFSET~\+\_\+u(0x\+D3)}
+
+\Hypertarget{ssd1306__i2c_8c_a1c1807ddf3965c29141c04eb97f1b9aa}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_DISP\_START\_LINE@{SSD1306\_SET\_DISP\_START\_LINE}}
+\index{SSD1306\_SET\_DISP\_START\_LINE@{SSD1306\_SET\_DISP\_START\_LINE}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_DISP\_START\_LINE}{SSD1306\_SET\_DISP\_START\_LINE}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a1c1807ddf3965c29141c04eb97f1b9aa} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+DISP\+\_\+\+START\+\_\+\+LINE~\+\_\+u(0x40)}
+
+\Hypertarget{ssd1306__i2c_8c_a589630f17275ac7d7bde0f79376f0ea0}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_ENTIRE\_ON@{SSD1306\_SET\_ENTIRE\_ON}}
+\index{SSD1306\_SET\_ENTIRE\_ON@{SSD1306\_SET\_ENTIRE\_ON}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_ENTIRE\_ON}{SSD1306\_SET\_ENTIRE\_ON}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a589630f17275ac7d7bde0f79376f0ea0} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+ENTIRE\+\_\+\+ON~\+\_\+u(0x\+A4)}
+
+\Hypertarget{ssd1306__i2c_8c_a056353e4b606d157a0afa9485d0b4e83}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_HORIZ\_SCROLL@{SSD1306\_SET\_HORIZ\_SCROLL}}
+\index{SSD1306\_SET\_HORIZ\_SCROLL@{SSD1306\_SET\_HORIZ\_SCROLL}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_HORIZ\_SCROLL}{SSD1306\_SET\_HORIZ\_SCROLL}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a056353e4b606d157a0afa9485d0b4e83} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+HORIZ\+\_\+\+SCROLL~\+\_\+u(0x26)}
+
+\Hypertarget{ssd1306__i2c_8c_a7e6e5c44e6fe96312f497386445600a0}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_INV\_DISP@{SSD1306\_SET\_INV\_DISP}}
+\index{SSD1306\_SET\_INV\_DISP@{SSD1306\_SET\_INV\_DISP}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_INV\_DISP}{SSD1306\_SET\_INV\_DISP}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a7e6e5c44e6fe96312f497386445600a0} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+INV\+\_\+\+DISP~\+\_\+u(0x\+A7)}
+
+\Hypertarget{ssd1306__i2c_8c_a4c391bc8411c7493dd8c28ed5611f2de}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_MEM\_MODE@{SSD1306\_SET\_MEM\_MODE}}
+\index{SSD1306\_SET\_MEM\_MODE@{SSD1306\_SET\_MEM\_MODE}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_MEM\_MODE}{SSD1306\_SET\_MEM\_MODE}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a4c391bc8411c7493dd8c28ed5611f2de} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+MEM\+\_\+\+MODE~\+\_\+u(0x20)}
+
+\Hypertarget{ssd1306__i2c_8c_a0b93a82ad4a012d6f45f41e0f6f8004a}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_MUX\_RATIO@{SSD1306\_SET\_MUX\_RATIO}}
+\index{SSD1306\_SET\_MUX\_RATIO@{SSD1306\_SET\_MUX\_RATIO}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_MUX\_RATIO}{SSD1306\_SET\_MUX\_RATIO}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a0b93a82ad4a012d6f45f41e0f6f8004a} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+MUX\+\_\+\+RATIO~\+\_\+u(0x\+A8)}
+
+\Hypertarget{ssd1306__i2c_8c_acebc478c4f4ca52ba544a80373493785}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_NORM\_DISP@{SSD1306\_SET\_NORM\_DISP}}
+\index{SSD1306\_SET\_NORM\_DISP@{SSD1306\_SET\_NORM\_DISP}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_NORM\_DISP}{SSD1306\_SET\_NORM\_DISP}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_acebc478c4f4ca52ba544a80373493785} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+NORM\+\_\+\+DISP~\+\_\+u(0x\+A6)}
+
+\Hypertarget{ssd1306__i2c_8c_ac3688afcf61a4ffccb0ee6ef165dd7a6}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_PAGE\_ADDR@{SSD1306\_SET\_PAGE\_ADDR}}
+\index{SSD1306\_SET\_PAGE\_ADDR@{SSD1306\_SET\_PAGE\_ADDR}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_PAGE\_ADDR}{SSD1306\_SET\_PAGE\_ADDR}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_ac3688afcf61a4ffccb0ee6ef165dd7a6} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+PAGE\+\_\+\+ADDR~\+\_\+u(0x22)}
+
+\Hypertarget{ssd1306__i2c_8c_a9e285eddc84b360c27b56505bed3742b}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_PRECHARGE@{SSD1306\_SET\_PRECHARGE}}
+\index{SSD1306\_SET\_PRECHARGE@{SSD1306\_SET\_PRECHARGE}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_PRECHARGE}{SSD1306\_SET\_PRECHARGE}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a9e285eddc84b360c27b56505bed3742b} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+PRECHARGE~\+\_\+u(0x\+D9)}
+
+\Hypertarget{ssd1306__i2c_8c_a22df8b0e886f3f4bd1e4e89ea6e29a99}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_SCROLL@{SSD1306\_SET\_SCROLL}}
+\index{SSD1306\_SET\_SCROLL@{SSD1306\_SET\_SCROLL}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_SCROLL}{SSD1306\_SET\_SCROLL}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a22df8b0e886f3f4bd1e4e89ea6e29a99} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+SCROLL~\+\_\+u(0x2E)}
+
+\Hypertarget{ssd1306__i2c_8c_a2b8dd63e62579bbb3e7f0f0701645b37}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_SEG\_REMAP@{SSD1306\_SET\_SEG\_REMAP}}
+\index{SSD1306\_SET\_SEG\_REMAP@{SSD1306\_SET\_SEG\_REMAP}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_SEG\_REMAP}{SSD1306\_SET\_SEG\_REMAP}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a2b8dd63e62579bbb3e7f0f0701645b37} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+SEG\+\_\+\+REMAP~\+\_\+u(0x\+A0)}
+
+\Hypertarget{ssd1306__i2c_8c_a7a38076df0ee56420a2ca71a3d4a1f23}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_SET\_VCOM\_DESEL@{SSD1306\_SET\_VCOM\_DESEL}}
+\index{SSD1306\_SET\_VCOM\_DESEL@{SSD1306\_SET\_VCOM\_DESEL}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_SET\_VCOM\_DESEL}{SSD1306\_SET\_VCOM\_DESEL}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a7a38076df0ee56420a2ca71a3d4a1f23} 
+\#define SSD1306\+\_\+\+SET\+\_\+\+VCOM\+\_\+\+DESEL~\+\_\+u(0x\+DB)}
+
+\Hypertarget{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_WIDTH@{SSD1306\_WIDTH}}
+\index{SSD1306\_WIDTH@{SSD1306\_WIDTH}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_WIDTH}{SSD1306\_WIDTH}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b} 
+\#define SSD1306\+\_\+\+WIDTH~128}
+
+\Hypertarget{ssd1306__i2c_8c_a6d52e17f2cbe857715b636ad0c8b6270}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!SSD1306\_WRITE\_MODE@{SSD1306\_WRITE\_MODE}}
+\index{SSD1306\_WRITE\_MODE@{SSD1306\_WRITE\_MODE}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{SSD1306\_WRITE\_MODE}{SSD1306\_WRITE\_MODE}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a6d52e17f2cbe857715b636ad0c8b6270} 
+\#define SSD1306\+\_\+\+WRITE\+\_\+\+MODE~\+\_\+u(0x\+FE)}
+
+
+
+\label{doc-func-members}
+\Hypertarget{ssd1306__i2c_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{ssd1306__i2c_8c_a77408bc9d298f7e429c1744825fff1fd}\index{ssd1306\_i2c.c@{ssd1306\_i2c.c}!calc\_render\_area\_buflen@{calc\_render\_area\_buflen}}
+\index{calc\_render\_area\_buflen@{calc\_render\_area\_buflen}!ssd1306\_i2c.c@{ssd1306\_i2c.c}}
+\doxysubsubsection{\texorpdfstring{calc\_render\_area\_buflen()}{calc\_render\_area\_buflen()}}
+{\footnotesize\ttfamily \label{ssd1306__i2c_8c_a77408bc9d298f7e429c1744825fff1fd} 
+void calc\+\_\+render\+\_\+area\+\_\+buflen (\begin{DoxyParamCaption}\item[{struct \mbox{\hyperlink{structrender__area}{render\+\_\+area}} \texorpdfstring{$\ast$}{*}}]{area}{}\end{DoxyParamCaption})}
+

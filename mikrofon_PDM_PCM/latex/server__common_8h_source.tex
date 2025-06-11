@@ -1,0 +1,23 @@
+\doxysection{server\+\_\+common.\+h}
+\hypertarget{server__common_8h_source}{}\label{server__common_8h_source}\mbox{\hyperlink{server__common_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#ifndef\ SERVER\_COMMON\_H\_}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#define\ SERVER\_COMMON\_H\_}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#define\ ADC\_CHANNEL\_TEMPSENSOR\ 4}}
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ \textcolor{keyword}{extern}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{server__common_8c_a23c66faa08d5f4366aedf9f553047ce9}{le\_notification\_enabled}};}
+\DoxyCodeLine{00013\ \textcolor{keyword}{extern}\ hci\_con\_handle\_t\ \mbox{\hyperlink{server__common_8c_a02bea55afda5d53df054b197b9f51f02}{con\_handle}};}
+\DoxyCodeLine{00014\ \textcolor{keyword}{extern}\ uint16\_t\ \mbox{\hyperlink{server__common_8c_ae4ee57be43fba76fdfa26edfa0db5e70}{current\_temp}};}
+\DoxyCodeLine{00015\ \textcolor{keyword}{extern}\ uint8\_t\ \textcolor{keyword}{const}\ \mbox{\hyperlink{mic_8h_a305489d0001af90e08425ce338277d67}{profile\_data}}[];}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{server__common_8h_a01ffdc0d678e814108fbbfa7bc417287}{packet\_handler}}(uint8\_t\ packet\_type,\ uint16\_t\ channel,\ uint8\_t\ *packet,\ uint16\_t\ size);}
+\DoxyCodeLine{00018\ uint16\_t\ \mbox{\hyperlink{server__common_8h_aea294c660abc532598d0cecc93a56f0e}{att\_read\_callback}}(hci\_con\_handle\_t\ connection\_handle,\ uint16\_t\ att\_handle,\ uint16\_t\ offset,\ uint8\_t\ *buffer,\ uint16\_t\ buffer\_size);}
+\DoxyCodeLine{00019\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{server__common_8h_a1836ea028b04701685deb4229f0f9baa}{att\_write\_callback}}(hci\_con\_handle\_t\ connection\_handle,\ uint16\_t\ att\_handle,\ uint16\_t\ transaction\_mode,\ uint16\_t\ offset,\ uint8\_t\ *buffer,\ uint16\_t\ buffer\_size);}
+\DoxyCodeLine{00020\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{server__common_8h_a0633367e1989872892e9b0addcbbe598}{send\_event\_text}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *text);}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

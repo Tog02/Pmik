@@ -1,0 +1,757 @@
+\doxysection{mikrofon\+\_\+\+PDM\+\_\+\+PCM.\+c File Reference}
+\hypertarget{mikrofon___p_d_m___p_c_m_8c}{}\label{mikrofon___p_d_m___p_c_m_8c}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include "{}pico/stdlib.\+h"{}}\newline
+{\ttfamily \#include "{}hardware/pio.\+h"{}}\newline
+{\ttfamily \#include "{}hardware/dma.\+h"{}}\newline
+{\ttfamily \#include "{}hardware/timer.\+h"{}}\newline
+{\ttfamily \#include "{}pico/multicore.\+h"{}}\newline
+{\ttfamily \#include "{}btstack.\+h"{}}\newline
+{\ttfamily \#include "{}pico/cyw43\+\_\+arch.\+h"{}}\newline
+{\ttfamily \#include "{}pico/btstack\+\_\+cyw43.\+h"{}}\newline
+{\ttfamily \#include "{}hardware/i2c.\+h"{}}\newline
+{\ttfamily \#include "{}ssd1306\+\_\+i2c.\+c"{}}\newline
+{\ttfamily \#include "{}hardware/gpio.\+h"{}}\newline
+{\ttfamily \#include "{}hardware/irq.\+h"{}}\newline
+{\ttfamily \#include "{}pdm.\+pio.\+h"{}}\newline
+{\ttfamily \#include "{}ff.\+h"{}}\newline
+{\ttfamily \#include "{}hw\+\_\+config.\+h"{}}\newline
+{\ttfamily \#include "{}f\+\_\+util.\+h"{}}\newline
+{\ttfamily \#include "{}Open\+PDMFilter.\+h"{}}\newline
+{\ttfamily \#include "{}Open\+PDMFilter.\+c"{}}\newline
+{\ttfamily \#include "{}server\+\_\+common.\+h"{}}\newline
+{\ttfamily \#include "{}STATES.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4b76a0c2859cfd819a343a780070ee2b}{SAMPLE\+\_\+\+RATE}}~16000
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7}{BUFFER\+\_\+\+SIZE}}~512
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_afb134291fff6dfdc86740cbc3db6bb62}{PCM\+\_\+\+BUFFER\+\_\+\+SIZE}}~(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7}{BUFFER\+\_\+\+SIZE}} / 4)
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_ad9ecf80e1eac083d16ec47f9d3aeb39f}{I2\+C\+\_\+\+PORT}}~i2c0
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a18aefd12ad84d4c33dc97923cb821e47}{I2\+C\+\_\+\+SDA}}~8
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a212ca328a6409c98f8c3dfbbe1ba561d}{I2\+C\+\_\+\+SCL}}~9
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_abc2ad14f0789907024ac765711ffd3da}{BUTTON\+\_\+\+PIN}}~19
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acda7867453dc4bd8d91710fbe4ea55a8}{BUTTON\+\_\+\+UP\+\_\+\+PIN}}~20
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a552ecc0d775a9499f0fdf8395a24c138}{BUTTON\+\_\+\+PLAY\+\_\+\+PIN}}~21
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a084f8c99301a09a4dc73ab07c34ce56a}{TOTAL\+\_\+\+RECORDS}}~64
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a7fc94e6f67e61595e51c1b5af0f86d67}{VISIBLE\+\_\+\+LINES}}~6
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a2e699cd3601e5b0fec029441306d46aa}{DEBOUNCE\+\_\+\+TIME\+\_\+\+MS}}~200
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a19b7f1b22403d61234a92decaeb6953a}{CHANNELS}}~1
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acb3a7156d26d658b7e90cac8a7a6d5c0}{MICFREQ}}~2048000
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a8b0b0ebd19cb978bcd825b842558c31a}{DECIMATION}}~128
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_aa345333d9f1465c2fd88e430379d2a43}{FREQ\+\_\+\+PCM}}~(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acb3a7156d26d658b7e90cac8a7a6d5c0}{MICFREQ}} / (1000 \texorpdfstring{$\ast$}{*} 128))
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a99bec7e0c278c92ccea868158a23cf41}{IN\+\_\+\+DATA\+\_\+\+LEN}}~(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a8b0b0ebd19cb978bcd825b842558c31a}{DECIMATION}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_aa345333d9f1465c2fd88e430379d2a43}{FREQ\+\_\+\+PCM}} / 8)
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a1a49c9e9aea718e5114654781da4e66d}{PDM\+\_\+\+CLOCK\+\_\+\+DIV}}~37
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a45d501c0be3c80ccf020b256232639ac}{YOUR\+\_\+\+PDM\+\_\+\+PIN}}~16
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_ab8d4a7b1b93fe8e6b84a0365f9a29db8}{YOUR\+\_\+\+CLK\+\_\+\+PIN}}~17
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a2c5eecb22513a88c24ae5831a3265e54}{MAX\+\_\+\+FILES}}~50
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acc9794f655f61a3246ba3fd5c9c67e14}{MAX\+\_\+\+FILENAME\+\_\+\+LEN}}~32
+\item 
+\#define \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a35071fb25f2d24544e8a248a6fb5d036}{HEARTBEAT\+\_\+\+PERIOD\+\_\+\+MS}}~1000
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a2c3436b0642d7d2220d468442cda9805}{Display\+Records}} (void)
+\begin{DoxyCompactList}\small\item\em Wyświetla listę rekordów na ekranie, uwzględniając przewijanie i zaznaczony element. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a18877aa86d01151a6ba68fae14772503}{start\+Recording}} (int record\+Index)
+\begin{DoxyCompactList}\small\item\em Rozpoczyna proces nagrywania dla wskazanego slotu. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a25e0e98dd4519eaaa6b258f0dcb91ac7}{stop\+Recording}} ()
+\begin{DoxyCompactList}\small\item\em Kończy proces nagrywania i odświeża ekran. \end{DoxyCompactList}\item 
+int64\+\_\+t \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a8cc0572fc7e704cf27b2cf85a878aede}{debounce\+\_\+timeout\+\_\+callback}} (alarm\+\_\+id\+\_\+t id, void \texorpdfstring{$\ast$}{*}user\+\_\+data)
+\begin{DoxyCompactList}\small\item\em Callback wywoływany po upływie czasu debounce dla przycisków. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a60c16d2b5323dc486ad6208a244ed7ae}{button\+\_\+isr}} (uint gpio, uint32\+\_\+t events)
+\begin{DoxyCompactList}\small\item\em Obsługuje przerwanie od przycisku i inicjuje mechanizm debounce. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a22ef629536924201be92703fc14bedfb}{dma\+\_\+handler}} ()
+\begin{DoxyCompactList}\small\item\em Obsługa przerwania DMA. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_aaed2541d4521853c23e7b3d796b7ee23}{init\+\_\+dma}} (PIO pio, uint sm)
+\begin{DoxyCompactList}\small\item\em Inicjalizacja DMA do pobierania danych z PIO. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_aa36186a7414718ef70c78761da0512ce}{init\+\_\+pdm}} (PIO pio, uint sm)
+\begin{DoxyCompactList}\small\item\em inicjalizacja PIO do obsługi PDM \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a83927d5b328367425506db94bb136019}{start\+\_\+listenig}} (PIO pio, uint sm)
+\begin{DoxyCompactList}\small\item\em Rozpoczyna nasłuchiwanie. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_ad5cc91e5197abffe9958c76d06741a32}{start\+\_\+recording}} ()
+\begin{DoxyCompactList}\small\item\em Rozpoczyna nagrywanie, wysyła sygnał do rdzenia 1 i ustawia flagę nagrywania. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a203793dab038a0255b9d89e82b35cc14}{write\+\_\+wav\+\_\+header}} (FIL \texorpdfstring{$\ast$}{*}file)
+\begin{DoxyCompactList}\small\item\em Tworzy i zapisuje na kartę sd nagłówek pliku WAV. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_ae568c8d22bde8527ad2b4b1bfc70196f}{finalize\+\_\+wav\+\_\+file}} (FIL \texorpdfstring{$\ast$}{*}file)
+\begin{DoxyCompactList}\small\item\em Zakończenie nagłówka pliku WAV. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_aaa99c548467879ec30e668c91f6095f0}{do\+\_\+filter}} (\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}filter)
+\begin{DoxyCompactList}\small\item\em Filtracja danych PDM do PCM. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a394af36bddd09744872ae0acb0b501a0}{write\+\_\+buffer}} (FIL \texorpdfstring{$\ast$}{*}file)
+\begin{DoxyCompactList}\small\item\em Zapis danych z bufora pcm do pliku na karcie sd. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a417b4b51f58953b594b020e20166c1fd}{list\+\_\+files}} (const char \texorpdfstring{$\ast$}{*}path)
+\begin{DoxyCompactList}\small\item\em Zczytaj wszystkie pliki z głównego katalogu na karcie sd. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_af8e85d8d786d9f343f1e1432e5084273}{is\+\_\+filename\+\_\+used}} (int number, char \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a2e7fe31b7c57d7626c5adcd44dc06eda}{file\+\_\+names}}\mbox{[}$\,$\mbox{]}\mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acc9794f655f61a3246ba3fd5c9c67e14}{MAX\+\_\+\+FILENAME\+\_\+\+LEN}}\mbox{]}, int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_abd3633577cf354ae9e2c69a018cfe999}{file\+\_\+count}})
+\begin{DoxyCompactList}\small\item\em Sprawdź czy plik o podanym numerze już istnieje. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a161354dac37755f4c383733402bd7b34}{generate\+\_\+unique\+\_\+filename\+\_\+from\+\_\+list}} (char \texorpdfstring{$\ast$}{*}out\+\_\+name, size\+\_\+t max\+\_\+len, char \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a2e7fe31b7c57d7626c5adcd44dc06eda}{file\+\_\+names}}\mbox{[}$\,$\mbox{]}\mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acc9794f655f61a3246ba3fd5c9c67e14}{MAX\+\_\+\+FILENAME\+\_\+\+LEN}}\mbox{]}, int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_abd3633577cf354ae9e2c69a018cfe999}{file\+\_\+count}})
+\begin{DoxyCompactList}\small\item\em Stwórz nową nazwę pliku. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a9f153132b8b4afad133b952111e18bd9}{core1\+\_\+entry}} ()
+\item 
+int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_ae66f6b31b5ad750f1fe042a706a4e3d4}{main}} ()
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}
+\item 
+bool \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4624780501806f05cb754ed211151845}{was\+\_\+recording}}
+\item 
+bool \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_ae87f17f14787093a5e6f67ee3bfae873}{want\+\_\+start}} = false
+\item 
+bool \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a44bb4dc29aa4f8b59fefcec140dd5394}{blue\+\_\+start}} = false
+\item 
+bool \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_abf0ddabdcdd5d3153b44baaac961342e}{buffer\+\_\+full}} = false
+\item 
+bool \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_aaaa86cbd88875817d7896b26080d35d4}{recording}} = false
+\item 
+uint16\+\_\+t \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a27b644bcf301802221247c5600b5b00a}{pcm\+\_\+buffer}} \mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_afb134291fff6dfdc86740cbc3db6bb62}{PCM\+\_\+\+BUFFER\+\_\+\+SIZE}}\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6d1ac13ae945e10045e7d2a9617847d7}{pdm\+\_\+buffer}} \mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7}{BUFFER\+\_\+\+SIZE}}\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4ec35e4f5945130ad224b188237622dc}{pdm\+\_\+buffer2}} \mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7}{BUFFER\+\_\+\+SIZE}}\mbox{]}
+\item 
+uint8\+\_\+t \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}} \mbox{[}\mbox{\hyperlink{ssd1306__i2c_8c_aafee566fd157739d02b21fa6eec3e6cf}{SSD1306\+\_\+\+BUF\+\_\+\+LEN}}\mbox{]}
+\item 
+int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a3d1d6390931e17d63012ad2a34e5205f}{scroll\+Offset}} = 0
+\item 
+volatile int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_ab4f0cde5c1c02d7b5e1b58c8b998e985}{selected\+Record}} = 0
+\item 
+bool \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6cb825a221b1ffc1ee63c829500a75e7}{is\+Recording}} = false
+\item 
+volatile uint32\+\_\+t \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a0ccb3fadf43d3e213f20ecb0f0376e20}{active\+\_\+pdm\+\_\+buffer}}
+\item 
+volatile uint32\+\_\+t \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a9e52c49b1507fdd9321e64b90537bc78}{ready\+\_\+pdm\+\_\+buffer}}
+\item 
+volatile bool \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_ad5cc893f10176741fab17617e2a9e505}{dma\+\_\+complete}} = false
+\item 
+int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_af557cec56f65a73de504a0982f07dec5}{dma\+\_\+channel}}
+\item 
+dma\+\_\+channel\+\_\+config \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a5097832b1612e03aca653df9067e7487}{config}}
+\item 
+char \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a2e7fe31b7c57d7626c5adcd44dc06eda}{file\+\_\+names}} \mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a2c5eecb22513a88c24ae5831a3265e54}{MAX\+\_\+\+FILES}}\mbox{]}\mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acc9794f655f61a3246ba3fd5c9c67e14}{MAX\+\_\+\+FILENAME\+\_\+\+LEN}}\mbox{]}
+\item 
+int \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_abd3633577cf354ae9e2c69a018cfe999}{file\+\_\+count}} = 0
+\item 
+struct \mbox{\hyperlink{structrender__area}{render\+\_\+area}} \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_adc51dceaa762d7f4c838e5d0fd0e4d41}{frame\+\_\+area}}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!BUFFER\_SIZE@{BUFFER\_SIZE}}
+\index{BUFFER\_SIZE@{BUFFER\_SIZE}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{BUFFER\_SIZE}{BUFFER\_SIZE}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7} 
+\#define BUFFER\+\_\+\+SIZE~512}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_abc2ad14f0789907024ac765711ffd3da}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!BUTTON\_PIN@{BUTTON\_PIN}}
+\index{BUTTON\_PIN@{BUTTON\_PIN}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{BUTTON\_PIN}{BUTTON\_PIN}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_abc2ad14f0789907024ac765711ffd3da} 
+\#define BUTTON\+\_\+\+PIN~19}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a552ecc0d775a9499f0fdf8395a24c138}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!BUTTON\_PLAY\_PIN@{BUTTON\_PLAY\_PIN}}
+\index{BUTTON\_PLAY\_PIN@{BUTTON\_PLAY\_PIN}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{BUTTON\_PLAY\_PIN}{BUTTON\_PLAY\_PIN}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a552ecc0d775a9499f0fdf8395a24c138} 
+\#define BUTTON\+\_\+\+PLAY\+\_\+\+PIN~21}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_acda7867453dc4bd8d91710fbe4ea55a8}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!BUTTON\_UP\_PIN@{BUTTON\_UP\_PIN}}
+\index{BUTTON\_UP\_PIN@{BUTTON\_UP\_PIN}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{BUTTON\_UP\_PIN}{BUTTON\_UP\_PIN}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_acda7867453dc4bd8d91710fbe4ea55a8} 
+\#define BUTTON\+\_\+\+UP\+\_\+\+PIN~20}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a19b7f1b22403d61234a92decaeb6953a}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!CHANNELS@{CHANNELS}}
+\index{CHANNELS@{CHANNELS}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{CHANNELS}{CHANNELS}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a19b7f1b22403d61234a92decaeb6953a} 
+\#define CHANNELS~1}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a2e699cd3601e5b0fec029441306d46aa}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!DEBOUNCE\_TIME\_MS@{DEBOUNCE\_TIME\_MS}}
+\index{DEBOUNCE\_TIME\_MS@{DEBOUNCE\_TIME\_MS}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{DEBOUNCE\_TIME\_MS}{DEBOUNCE\_TIME\_MS}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a2e699cd3601e5b0fec029441306d46aa} 
+\#define DEBOUNCE\+\_\+\+TIME\+\_\+\+MS~200}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a8b0b0ebd19cb978bcd825b842558c31a}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!DECIMATION@{DECIMATION}}
+\index{DECIMATION@{DECIMATION}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{DECIMATION}{DECIMATION}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a8b0b0ebd19cb978bcd825b842558c31a} 
+\#define DECIMATION~128}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_aa345333d9f1465c2fd88e430379d2a43}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!FREQ\_PCM@{FREQ\_PCM}}
+\index{FREQ\_PCM@{FREQ\_PCM}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{FREQ\_PCM}{FREQ\_PCM}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_aa345333d9f1465c2fd88e430379d2a43} 
+\#define FREQ\+\_\+\+PCM~(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acb3a7156d26d658b7e90cac8a7a6d5c0}{MICFREQ}} / (1000 \texorpdfstring{$\ast$}{*} 128))}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a35071fb25f2d24544e8a248a6fb5d036}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!HEARTBEAT\_PERIOD\_MS@{HEARTBEAT\_PERIOD\_MS}}
+\index{HEARTBEAT\_PERIOD\_MS@{HEARTBEAT\_PERIOD\_MS}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{HEARTBEAT\_PERIOD\_MS}{HEARTBEAT\_PERIOD\_MS}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a35071fb25f2d24544e8a248a6fb5d036} 
+\#define HEARTBEAT\+\_\+\+PERIOD\+\_\+\+MS~1000}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_ad9ecf80e1eac083d16ec47f9d3aeb39f}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!I2C\_PORT@{I2C\_PORT}}
+\index{I2C\_PORT@{I2C\_PORT}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{I2C\_PORT}{I2C\_PORT}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_ad9ecf80e1eac083d16ec47f9d3aeb39f} 
+\#define I2\+C\+\_\+\+PORT~i2c0}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a212ca328a6409c98f8c3dfbbe1ba561d}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!I2C\_SCL@{I2C\_SCL}}
+\index{I2C\_SCL@{I2C\_SCL}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{I2C\_SCL}{I2C\_SCL}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a212ca328a6409c98f8c3dfbbe1ba561d} 
+\#define I2\+C\+\_\+\+SCL~9}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a18aefd12ad84d4c33dc97923cb821e47}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!I2C\_SDA@{I2C\_SDA}}
+\index{I2C\_SDA@{I2C\_SDA}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{I2C\_SDA}{I2C\_SDA}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a18aefd12ad84d4c33dc97923cb821e47} 
+\#define I2\+C\+\_\+\+SDA~8}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a99bec7e0c278c92ccea868158a23cf41}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!IN\_DATA\_LEN@{IN\_DATA\_LEN}}
+\index{IN\_DATA\_LEN@{IN\_DATA\_LEN}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{IN\_DATA\_LEN}{IN\_DATA\_LEN}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a99bec7e0c278c92ccea868158a23cf41} 
+\#define IN\+\_\+\+DATA\+\_\+\+LEN~(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a8b0b0ebd19cb978bcd825b842558c31a}{DECIMATION}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_aa345333d9f1465c2fd88e430379d2a43}{FREQ\+\_\+\+PCM}} / 8)}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_acc9794f655f61a3246ba3fd5c9c67e14}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!MAX\_FILENAME\_LEN@{MAX\_FILENAME\_LEN}}
+\index{MAX\_FILENAME\_LEN@{MAX\_FILENAME\_LEN}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{MAX\_FILENAME\_LEN}{MAX\_FILENAME\_LEN}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_acc9794f655f61a3246ba3fd5c9c67e14} 
+\#define MAX\+\_\+\+FILENAME\+\_\+\+LEN~32}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a2c5eecb22513a88c24ae5831a3265e54}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!MAX\_FILES@{MAX\_FILES}}
+\index{MAX\_FILES@{MAX\_FILES}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{MAX\_FILES}{MAX\_FILES}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a2c5eecb22513a88c24ae5831a3265e54} 
+\#define MAX\+\_\+\+FILES~50}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_acb3a7156d26d658b7e90cac8a7a6d5c0}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!MICFREQ@{MICFREQ}}
+\index{MICFREQ@{MICFREQ}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{MICFREQ}{MICFREQ}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_acb3a7156d26d658b7e90cac8a7a6d5c0} 
+\#define MICFREQ~2048000}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_afb134291fff6dfdc86740cbc3db6bb62}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!PCM\_BUFFER\_SIZE@{PCM\_BUFFER\_SIZE}}
+\index{PCM\_BUFFER\_SIZE@{PCM\_BUFFER\_SIZE}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{PCM\_BUFFER\_SIZE}{PCM\_BUFFER\_SIZE}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_afb134291fff6dfdc86740cbc3db6bb62} 
+\#define PCM\+\_\+\+BUFFER\+\_\+\+SIZE~(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7}{BUFFER\+\_\+\+SIZE}} / 4)}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a1a49c9e9aea718e5114654781da4e66d}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!PDM\_CLOCK\_DIV@{PDM\_CLOCK\_DIV}}
+\index{PDM\_CLOCK\_DIV@{PDM\_CLOCK\_DIV}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{PDM\_CLOCK\_DIV}{PDM\_CLOCK\_DIV}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a1a49c9e9aea718e5114654781da4e66d} 
+\#define PDM\+\_\+\+CLOCK\+\_\+\+DIV~37}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a4b76a0c2859cfd819a343a780070ee2b}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!SAMPLE\_RATE@{SAMPLE\_RATE}}
+\index{SAMPLE\_RATE@{SAMPLE\_RATE}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{SAMPLE\_RATE}{SAMPLE\_RATE}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a4b76a0c2859cfd819a343a780070ee2b} 
+\#define SAMPLE\+\_\+\+RATE~16000}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a084f8c99301a09a4dc73ab07c34ce56a}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!TOTAL\_RECORDS@{TOTAL\_RECORDS}}
+\index{TOTAL\_RECORDS@{TOTAL\_RECORDS}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{TOTAL\_RECORDS}{TOTAL\_RECORDS}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a084f8c99301a09a4dc73ab07c34ce56a} 
+\#define TOTAL\+\_\+\+RECORDS~64}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a7fc94e6f67e61595e51c1b5af0f86d67}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!VISIBLE\_LINES@{VISIBLE\_LINES}}
+\index{VISIBLE\_LINES@{VISIBLE\_LINES}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{VISIBLE\_LINES}{VISIBLE\_LINES}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a7fc94e6f67e61595e51c1b5af0f86d67} 
+\#define VISIBLE\+\_\+\+LINES~6}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_ab8d4a7b1b93fe8e6b84a0365f9a29db8}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!YOUR\_CLK\_PIN@{YOUR\_CLK\_PIN}}
+\index{YOUR\_CLK\_PIN@{YOUR\_CLK\_PIN}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{YOUR\_CLK\_PIN}{YOUR\_CLK\_PIN}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_ab8d4a7b1b93fe8e6b84a0365f9a29db8} 
+\#define YOUR\+\_\+\+CLK\+\_\+\+PIN~17}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a45d501c0be3c80ccf020b256232639ac}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!YOUR\_PDM\_PIN@{YOUR\_PDM\_PIN}}
+\index{YOUR\_PDM\_PIN@{YOUR\_PDM\_PIN}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{YOUR\_PDM\_PIN}{YOUR\_PDM\_PIN}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a45d501c0be3c80ccf020b256232639ac} 
+\#define YOUR\+\_\+\+PDM\+\_\+\+PIN~16}
+
+
+
+\label{doc-func-members}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a60c16d2b5323dc486ad6208a244ed7ae}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!button\_isr@{button\_isr}}
+\index{button\_isr@{button\_isr}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{button\_isr()}{button\_isr()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a60c16d2b5323dc486ad6208a244ed7ae} 
+void button\+\_\+isr (\begin{DoxyParamCaption}\item[{uint}]{gpio}{, }\item[{uint32\+\_\+t}]{events}{}\end{DoxyParamCaption})}
+
+
+
+Obsługuje przerwanie od przycisku i inicjuje mechanizm debounce. 
+
+Funkcja wyłącza przerwanie dla danego pinu GPIO, aby zapobiec drganiom styków (debounce), a następnie ustawia alarm czasowy, który po określonym czasie ({\ttfamily DEBOUNCE\+\_\+\+TIME\+\_\+\+MS}) wywoła funkcję {\ttfamily debounce\+\_\+timeout\+\_\+callback}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpio} & Numer pinu GPIO, który wywołał przerwanie. \\
+\hline
+{\em events} & Typ zdarzenia przerwania (np. zbocze opadające). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+void Funkcja nie zwraca żadnej wartości. 
+\end{DoxyReturn}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a9f153132b8b4afad133b952111e18bd9}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!core1\_entry@{core1\_entry}}
+\index{core1\_entry@{core1\_entry}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{core1\_entry()}{core1\_entry()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a9f153132b8b4afad133b952111e18bd9} 
+void core1\+\_\+entry (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a8cc0572fc7e704cf27b2cf85a878aede}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!debounce\_timeout\_callback@{debounce\_timeout\_callback}}
+\index{debounce\_timeout\_callback@{debounce\_timeout\_callback}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{debounce\_timeout\_callback()}{debounce\_timeout\_callback()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a8cc0572fc7e704cf27b2cf85a878aede} 
+int64\+\_\+t debounce\+\_\+timeout\+\_\+callback (\begin{DoxyParamCaption}\item[{alarm\+\_\+id\+\_\+t}]{id}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{}\end{DoxyParamCaption})}
+
+
+
+Callback wywoływany po upływie czasu debounce dla przycisków. 
+
+Funkcja ponownie włącza przerwanie dla danego pinu GPIO, a następnie interpretuje, który przycisk został naciśnięty (na podstawie {\ttfamily user\+\_\+data}) i wykonuje odpowiednią akcję – przewijanie rekordów lub rozpoczęcie/zakończenie nagrywania. Podczas nagrywania ignorowane są inne przyciski niż {\ttfamily BUTTON\+\_\+\+PLAY\+\_\+\+PIN}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em id} & Identyfikator alarmu przypisanego do callbacka (niewykorzystywany w funkcji). \\
+\hline
+{\em user\+\_\+data} & Wskaźnik do numeru pinu GPIO, rzutowany na {\ttfamily uint}. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+int64\+\_\+t Zwraca 0 – zgodnie z konwencją, by nie ponawiać alarmu. 
+\end{DoxyReturn}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a2c3436b0642d7d2220d468442cda9805}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!DisplayRecords@{DisplayRecords}}
+\index{DisplayRecords@{DisplayRecords}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{DisplayRecords()}{DisplayRecords()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a2c3436b0642d7d2220d468442cda9805} 
+void Display\+Records (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Wyświetla listę rekordów na ekranie, uwzględniając przewijanie i zaznaczony element. 
+
+Funkcja aktualizuje zawartość bufora ekranu na podstawie bieżącego zaznaczenia (selected\+Record) oraz pozycji przewijania (scroll\+Offset). Zaznaczony rekord jest wizualnie wyróżniony. Widoczne rekordy są ograniczone do VISIBLE\+\_\+\+LINES. Na koniec bufor jest renderowany na ekran.
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & Brak parametrów wejściowych. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+void Funkcja nie zwraca żadnej wartości. 
+\end{DoxyReturn}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a22ef629536924201be92703fc14bedfb}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!dma\_handler@{dma\_handler}}
+\index{dma\_handler@{dma\_handler}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{dma\_handler()}{dma\_handler()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a22ef629536924201be92703fc14bedfb} 
+void dma\+\_\+handler (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Obsługa przerwania DMA. 
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_aaa99c548467879ec30e668c91f6095f0}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!do\_filter@{do\_filter}}
+\index{do\_filter@{do\_filter}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{do\_filter()}{do\_filter()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_aaa99c548467879ec30e668c91f6095f0} 
+void do\+\_\+filter (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}}]{filter}{}\end{DoxyParamCaption})}
+
+
+
+Filtracja danych PDM do PCM. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \texorpdfstring{$\ast$}{*}filter} & wskaźnik do struktury filtra \\
+\hline
+\end{DoxyParams}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_ae568c8d22bde8527ad2b4b1bfc70196f}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!finalize\_wav\_file@{finalize\_wav\_file}}
+\index{finalize\_wav\_file@{finalize\_wav\_file}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{finalize\_wav\_file()}{finalize\_wav\_file()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_ae568c8d22bde8527ad2b4b1bfc70196f} 
+void finalize\+\_\+wav\+\_\+file (\begin{DoxyParamCaption}\item[{FIL \texorpdfstring{$\ast$}{*}}]{file}{}\end{DoxyParamCaption})}
+
+
+
+Zakończenie nagłówka pliku WAV. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \texorpdfstring{$\ast$}{*}file} & wskaźnik do pliku \\
+\hline
+\end{DoxyParams}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a161354dac37755f4c383733402bd7b34}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!generate\_unique\_filename\_from\_list@{generate\_unique\_filename\_from\_list}}
+\index{generate\_unique\_filename\_from\_list@{generate\_unique\_filename\_from\_list}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{generate\_unique\_filename\_from\_list()}{generate\_unique\_filename\_from\_list()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a161354dac37755f4c383733402bd7b34} 
+void generate\+\_\+unique\+\_\+filename\+\_\+from\+\_\+list (\begin{DoxyParamCaption}\item[{char \texorpdfstring{$\ast$}{*}}]{out\+\_\+name}{, }\item[{size\+\_\+t}]{max\+\_\+len}{, }\item[{char}]{file\+\_\+names}{\mbox{[}$\,$\mbox{]}\mbox{[}\+MAX\+\_\+\+FILENAME\+\_\+\+LEN\mbox{]}, }\item[{int}]{file\+\_\+count}{}\end{DoxyParamCaption})}
+
+
+
+Stwórz nową nazwę pliku. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \texorpdfstring{$\ast$}{*}out\+\_\+name} & wskaźnik do tworzonej nazwy \\
+\hline
+{\em max\+\_\+len} & maksymalna długość nazwy \\
+\hline
+{\em file\+\_\+names\mbox{[}$\,$\mbox{]}\mbox{[}$\,$\mbox{]}} & tablica z nazwami plików \\
+\hline
+{\em file\+\_\+count} & liczba plików \\
+\hline
+\end{DoxyParams}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_aaed2541d4521853c23e7b3d796b7ee23}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!init\_dma@{init\_dma}}
+\index{init\_dma@{init\_dma}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{init\_dma()}{init\_dma()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_aaed2541d4521853c23e7b3d796b7ee23} 
+void init\+\_\+dma (\begin{DoxyParamCaption}\item[{PIO}]{pio}{, }\item[{uint}]{sm}{}\end{DoxyParamCaption})}
+
+
+
+Inicjalizacja DMA do pobierania danych z PIO. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pio} & wskaźnik do używanego PIO \\
+\hline
+{\em sm} & wskaźnik do używanej maszyny stanów PIO \\
+\hline
+\end{DoxyParams}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_aa36186a7414718ef70c78761da0512ce}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!init\_pdm@{init\_pdm}}
+\index{init\_pdm@{init\_pdm}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{init\_pdm()}{init\_pdm()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_aa36186a7414718ef70c78761da0512ce} 
+void init\+\_\+pdm (\begin{DoxyParamCaption}\item[{PIO}]{pio}{, }\item[{uint}]{sm}{}\end{DoxyParamCaption})}
+
+
+
+inicjalizacja PIO do obsługi PDM 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pio} & wskaźnik do używanego PIO \\
+\hline
+{\em sm} & wskaźnik do używanej maszyny stanów PIO \\
+\hline
+\end{DoxyParams}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_af8e85d8d786d9f343f1e1432e5084273}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!is\_filename\_used@{is\_filename\_used}}
+\index{is\_filename\_used@{is\_filename\_used}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{is\_filename\_used()}{is\_filename\_used()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_af8e85d8d786d9f343f1e1432e5084273} 
+bool is\+\_\+filename\+\_\+used (\begin{DoxyParamCaption}\item[{int}]{number}{, }\item[{char}]{file\+\_\+names}{\mbox{[}$\,$\mbox{]}\mbox{[}\+MAX\+\_\+\+FILENAME\+\_\+\+LEN\mbox{]}, }\item[{int}]{file\+\_\+count}{}\end{DoxyParamCaption})}
+
+
+
+Sprawdź czy plik o podanym numerze już istnieje. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em number} & numer pliku do sprawdzenia \\
+\hline
+{\em file\+\_\+names\mbox{[}$\,$\mbox{]}\mbox{[}$\,$\mbox{]}} & tablica z nazwami plików \\
+\hline
+{\em file\+\_\+count} & liczba plików\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+true jeśli plik już istnieje, false jeśli nie istnieje 
+\end{DoxyReturn}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a417b4b51f58953b594b020e20166c1fd}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!list\_files@{list\_files}}
+\index{list\_files@{list\_files}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{list\_files()}{list\_files()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a417b4b51f58953b594b020e20166c1fd} 
+int list\+\_\+files (\begin{DoxyParamCaption}\item[{const char \texorpdfstring{$\ast$}{*}}]{path}{}\end{DoxyParamCaption})}
+
+
+
+Zczytaj wszystkie pliki z głównego katalogu na karcie sd. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \texorpdfstring{$\ast$}{*}path} & wskaźnik do przeszukiwanego katalogu\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+file\+\_\+count liczba znalezionych plików 
+\end{DoxyReturn}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_ae66f6b31b5ad750f1fe042a706a4e3d4}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!main@{main}}
+\index{main@{main}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{main()}{main()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_ae66f6b31b5ad750f1fe042a706a4e3d4} 
+int main (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a83927d5b328367425506db94bb136019}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!start\_listenig@{start\_listenig}}
+\index{start\_listenig@{start\_listenig}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{start\_listenig()}{start\_listenig()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a83927d5b328367425506db94bb136019} 
+void start\+\_\+listenig (\begin{DoxyParamCaption}\item[{PIO}]{pio}{, }\item[{uint}]{sm}{}\end{DoxyParamCaption})}
+
+
+
+Rozpoczyna nasłuchiwanie. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pio} & wskaźnik do używanego PIO \\
+\hline
+{\em sm} & wskaźnik do używanej maszyny stanów PIO \\
+\hline
+\end{DoxyParams}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_ad5cc91e5197abffe9958c76d06741a32}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!start\_recording@{start\_recording}}
+\index{start\_recording@{start\_recording}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{start\_recording()}{start\_recording()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_ad5cc91e5197abffe9958c76d06741a32} 
+void start\+\_\+recording (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Rozpoczyna nagrywanie, wysyła sygnał do rdzenia 1 i ustawia flagę nagrywania. 
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a18877aa86d01151a6ba68fae14772503}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!startRecording@{startRecording}}
+\index{startRecording@{startRecording}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{startRecording()}{startRecording()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a18877aa86d01151a6ba68fae14772503} 
+void start\+Recording (\begin{DoxyParamCaption}\item[{int}]{record\+Index}{}\end{DoxyParamCaption})}
+
+
+
+Rozpoczyna proces nagrywania dla wskazanego slotu. 
+
+Funkcja ustawia flagę {\ttfamily want\+\_\+start} na true, wyświetla informacje o rozpoczęciu nagrywania zarówno w konsoli (przez {\ttfamily printf}), jak i na ekranie OLED. Nazwa pliku jest pobierana z tablicy {\ttfamily file\+\_\+names} na podstawie indeksu {\ttfamily record\+Index}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em record\+Index} & Indeks slotu (rekordu), do którego ma zostać rozpoczęte nagrywanie. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+void Funkcja nie zwraca żadnej wartości. 
+\end{DoxyReturn}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a25e0e98dd4519eaaa6b258f0dcb91ac7}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!stopRecording@{stopRecording}}
+\index{stopRecording@{stopRecording}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{stopRecording()}{stopRecording()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a25e0e98dd4519eaaa6b258f0dcb91ac7} 
+void stop\+Recording (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Kończy proces nagrywania i odświeża ekran. 
+
+Funkcja kończy nagrywanie, ustawiając flagę {\ttfamily recording} na 0 oraz przywraca widok listy rekordów za pomocą {\ttfamily \doxylink{mikrofon___p_d_m___p_c_m_8c_a2c3436b0642d7d2220d468442cda9805}{Display\+Records()}}. Następnie renderuje zmodyfikowany bufor na ekranie. Komentarz sugeruje możliwość czyszczenia napisu "{}\+REC"{}, choć linia ta jest obecnie zakomentowana.
+
+
+\begin{DoxyParams}{Parameters}
+{\em void} & Brak parametrów wejściowych. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+void Funkcja nie zwraca żadnej wartości. 
+\end{DoxyReturn}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a394af36bddd09744872ae0acb0b501a0}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!write\_buffer@{write\_buffer}}
+\index{write\_buffer@{write\_buffer}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{write\_buffer()}{write\_buffer()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a394af36bddd09744872ae0acb0b501a0} 
+void write\+\_\+buffer (\begin{DoxyParamCaption}\item[{FIL \texorpdfstring{$\ast$}{*}}]{file}{}\end{DoxyParamCaption})}
+
+
+
+Zapis danych z bufora pcm do pliku na karcie sd. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \texorpdfstring{$\ast$}{*}file} & wskaźnik do pliku \\
+\hline
+\end{DoxyParams}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a203793dab038a0255b9d89e82b35cc14}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!write\_wav\_header@{write\_wav\_header}}
+\index{write\_wav\_header@{write\_wav\_header}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{write\_wav\_header()}{write\_wav\_header()}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a203793dab038a0255b9d89e82b35cc14} 
+int write\+\_\+wav\+\_\+header (\begin{DoxyParamCaption}\item[{FIL \texorpdfstring{$\ast$}{*}}]{file}{}\end{DoxyParamCaption})}
+
+
+
+Tworzy i zapisuje na kartę sd nagłówek pliku WAV. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \texorpdfstring{$\ast$}{*}file} & wskaźnik do pliku\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+1 jeśli udało się zapisać 0 jeśli nie udało się zapisać 
+\end{DoxyReturn}
+
+
+\label{doc-var-members}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a0ccb3fadf43d3e213f20ecb0f0376e20}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!active\_pdm\_buffer@{active\_pdm\_buffer}}
+\index{active\_pdm\_buffer@{active\_pdm\_buffer}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{active\_pdm\_buffer}{active\_pdm\_buffer}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a0ccb3fadf43d3e213f20ecb0f0376e20} 
+volatile uint32\+\_\+t\texorpdfstring{$\ast$}{*} active\+\_\+pdm\+\_\+buffer}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a44bb4dc29aa4f8b59fefcec140dd5394}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!blue\_start@{blue\_start}}
+\index{blue\_start@{blue\_start}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{blue\_start}{blue\_start}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a44bb4dc29aa4f8b59fefcec140dd5394} 
+bool blue\+\_\+start = false}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!buf@{buf}}
+\index{buf@{buf}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{buf}{buf}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590} 
+uint8\+\_\+t buf\mbox{[}\mbox{\hyperlink{ssd1306__i2c_8c_aafee566fd157739d02b21fa6eec3e6cf}{SSD1306\+\_\+\+BUF\+\_\+\+LEN}}\mbox{]}}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_abf0ddabdcdd5d3153b44baaac961342e}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!buffer\_full@{buffer\_full}}
+\index{buffer\_full@{buffer\_full}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{buffer\_full}{buffer\_full}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_abf0ddabdcdd5d3153b44baaac961342e} 
+bool buffer\+\_\+full = false}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a5097832b1612e03aca653df9067e7487}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!config@{config}}
+\index{config@{config}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{config}{config}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a5097832b1612e03aca653df9067e7487} 
+dma\+\_\+channel\+\_\+config config}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_af557cec56f65a73de504a0982f07dec5}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!dma\_channel@{dma\_channel}}
+\index{dma\_channel@{dma\_channel}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{dma\_channel}{dma\_channel}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_af557cec56f65a73de504a0982f07dec5} 
+int dma\+\_\+channel}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_ad5cc893f10176741fab17617e2a9e505}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!dma\_complete@{dma\_complete}}
+\index{dma\_complete@{dma\_complete}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{dma\_complete}{dma\_complete}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_ad5cc893f10176741fab17617e2a9e505} 
+volatile bool dma\+\_\+complete = false}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_abd3633577cf354ae9e2c69a018cfe999}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!file\_count@{file\_count}}
+\index{file\_count@{file\_count}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{file\_count}{file\_count}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_abd3633577cf354ae9e2c69a018cfe999} 
+int file\+\_\+count = 0}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a2e7fe31b7c57d7626c5adcd44dc06eda}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!file\_names@{file\_names}}
+\index{file\_names@{file\_names}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{file\_names}{file\_names}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a2e7fe31b7c57d7626c5adcd44dc06eda} 
+char file\+\_\+names\mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a2c5eecb22513a88c24ae5831a3265e54}{MAX\+\_\+\+FILES}}\mbox{]}\mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_acc9794f655f61a3246ba3fd5c9c67e14}{MAX\+\_\+\+FILENAME\+\_\+\+LEN}}\mbox{]}}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_adc51dceaa762d7f4c838e5d0fd0e4d41}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!frame\_area@{frame\_area}}
+\index{frame\_area@{frame\_area}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{frame\_area}{frame\_area}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_adc51dceaa762d7f4c838e5d0fd0e4d41} 
+struct \mbox{\hyperlink{structrender__area}{render\+\_\+area}} frame\+\_\+area}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=\ \{}
+\DoxyCodeLine{\ \ \ \ .start\_col\ =\ 0,}
+\DoxyCodeLine{\ \ \ \ .end\_col\ =\ \mbox{\hyperlink{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b}{SSD1306\_WIDTH}}\ -\/\ 1,}
+\DoxyCodeLine{\ \ \ \ .start\_page\ =\ 0,}
+\DoxyCodeLine{\ \ \ \ .end\_page\ =\ \mbox{\hyperlink{ssd1306__i2c_8c_a7c6f188acf37426f4cfe0ac73f11fb7d}{SSD1306\_NUM\_PAGES}}\ -\/\ 1\}}
+
+\end{DoxyCode}
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a6cb825a221b1ffc1ee63c829500a75e7}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!isRecording@{isRecording}}
+\index{isRecording@{isRecording}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{isRecording}{isRecording}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a6cb825a221b1ffc1ee63c829500a75e7} 
+bool is\+Recording = false}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a27b644bcf301802221247c5600b5b00a}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!pcm\_buffer@{pcm\_buffer}}
+\index{pcm\_buffer@{pcm\_buffer}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{pcm\_buffer}{pcm\_buffer}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a27b644bcf301802221247c5600b5b00a} 
+uint16\+\_\+t pcm\+\_\+buffer\mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_afb134291fff6dfdc86740cbc3db6bb62}{PCM\+\_\+\+BUFFER\+\_\+\+SIZE}}\mbox{]}}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a6d1ac13ae945e10045e7d2a9617847d7}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!pdm\_buffer@{pdm\_buffer}}
+\index{pdm\_buffer@{pdm\_buffer}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{pdm\_buffer}{pdm\_buffer}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a6d1ac13ae945e10045e7d2a9617847d7} 
+uint32\+\_\+t pdm\+\_\+buffer\mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7}{BUFFER\+\_\+\+SIZE}}\mbox{]}}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a4ec35e4f5945130ad224b188237622dc}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!pdm\_buffer2@{pdm\_buffer2}}
+\index{pdm\_buffer2@{pdm\_buffer2}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{pdm\_buffer2}{pdm\_buffer2}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a4ec35e4f5945130ad224b188237622dc} 
+uint32\+\_\+t pdm\+\_\+buffer2\mbox{[}\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a6b20d41d6252e9871430c242cb1a56e7}{BUFFER\+\_\+\+SIZE}}\mbox{]}}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a9e52c49b1507fdd9321e64b90537bc78}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!ready\_pdm\_buffer@{ready\_pdm\_buffer}}
+\index{ready\_pdm\_buffer@{ready\_pdm\_buffer}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{ready\_pdm\_buffer}{ready\_pdm\_buffer}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a9e52c49b1507fdd9321e64b90537bc78} 
+volatile uint32\+\_\+t\texorpdfstring{$\ast$}{*} ready\+\_\+pdm\+\_\+buffer}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_aaaa86cbd88875817d7896b26080d35d4}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!recording@{recording}}
+\index{recording@{recording}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{recording}{recording}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_aaaa86cbd88875817d7896b26080d35d4} 
+bool recording = false}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a3d1d6390931e17d63012ad2a34e5205f}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!scrollOffset@{scrollOffset}}
+\index{scrollOffset@{scrollOffset}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{scrollOffset}{scrollOffset}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a3d1d6390931e17d63012ad2a34e5205f} 
+int scroll\+Offset = 0}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_ab4f0cde5c1c02d7b5e1b58c8b998e985}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!selectedRecord@{selectedRecord}}
+\index{selectedRecord@{selectedRecord}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{selectedRecord}{selectedRecord}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_ab4f0cde5c1c02d7b5e1b58c8b998e985} 
+volatile int selected\+Record = 0}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_aa0ccb5ee6d882ee3605ff47745c6467b}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!val@{val}}
+\index{val@{val}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{val}{val}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_aa0ccb5ee6d882ee3605ff47745c6467b} 
+int val}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_ae87f17f14787093a5e6f67ee3bfae873}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!want\_start@{want\_start}}
+\index{want\_start@{want\_start}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{want\_start}{want\_start}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_ae87f17f14787093a5e6f67ee3bfae873} 
+bool want\+\_\+start = false}
+
+\Hypertarget{mikrofon___p_d_m___p_c_m_8c_a4624780501806f05cb754ed211151845}\index{mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}!was\_recording@{was\_recording}}
+\index{was\_recording@{was\_recording}!mikrofon\_PDM\_PCM.c@{mikrofon\_PDM\_PCM.c}}
+\doxysubsubsection{\texorpdfstring{was\_recording}{was\_recording}}
+{\footnotesize\ttfamily \label{mikrofon___p_d_m___p_c_m_8c_a4624780501806f05cb754ed211151845} 
+bool was\+\_\+recording}
+

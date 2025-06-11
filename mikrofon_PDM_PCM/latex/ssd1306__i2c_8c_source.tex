@@ -1,0 +1,447 @@
+\doxysection{ssd1306\+\_\+i2c.\+c}
+\hypertarget{ssd1306__i2c_8c_source}{}\label{ssd1306__i2c_8c_source}\mbox{\hyperlink{ssd1306__i2c_8c}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <ctype.h>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ "{}pico/stdlib.h"{}}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ "{}pico/binary\_info.h"{}}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ "{}hardware/i2c.h"{}}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{ssd1306__font_8h}{ssd1306\_font.h}}"{}}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{/*\ Example\ code\ to\ talk\ to\ an\ SSD1306-\/based\ OLED\ display}}
+\DoxyCodeLine{00017\ \textcolor{comment}{}}
+\DoxyCodeLine{00018\ \textcolor{comment}{\ \ \ The\ SSD1306\ is\ an\ OLED/PLED\ driver\ chip,\ capable\ of\ driving\ displays\ up\ to}}
+\DoxyCodeLine{00019\ \textcolor{comment}{\ \ \ 128x64\ pixels.}}
+\DoxyCodeLine{00020\ \textcolor{comment}{}}
+\DoxyCodeLine{00021\ \textcolor{comment}{\ \ \ NOTE:\ Ensure\ the\ device\ is\ capable\ of\ being\ driven\ at\ 3.3v\ NOT\ 5v.\ The\ Pico}}
+\DoxyCodeLine{00022\ \textcolor{comment}{\ \ \ GPIO\ (and\ therefore\ I2C)\ cannot\ be\ used\ at\ 5v.}}
+\DoxyCodeLine{00023\ \textcolor{comment}{}}
+\DoxyCodeLine{00024\ \textcolor{comment}{\ \ \ You\ will\ need\ to\ use\ a\ level\ shifter\ on\ the\ I2C\ lines\ if\ you\ want\ to\ run\ the}}
+\DoxyCodeLine{00025\ \textcolor{comment}{\ \ \ board\ at\ 5v.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{}}
+\DoxyCodeLine{00027\ \textcolor{comment}{\ \ \ Connections\ on\ Raspberry\ Pi\ Pico\ board,\ other\ boards\ may\ vary.}}
+\DoxyCodeLine{00028\ \textcolor{comment}{}}
+\DoxyCodeLine{00029\ \textcolor{comment}{\ \ \ GPIO\ PICO\_DEFAULT\_I2C\_SDA\_PIN\ (on\ Pico\ this\ is\ GP4\ (pin\ 6))\ -\/>\ SDA\ on\ display}}
+\DoxyCodeLine{00030\ \textcolor{comment}{\ \ \ board}}
+\DoxyCodeLine{00031\ \textcolor{comment}{\ \ \ GPIO\ PICO\_DEFAULT\_I2C\_SCL\_PIN\ (on\ Pico\ this\ is\ GP5\ (pin\ 7))\ -\/>\ SCL\ on}}
+\DoxyCodeLine{00032\ \textcolor{comment}{\ \ \ display\ board}}
+\DoxyCodeLine{00033\ \textcolor{comment}{\ \ \ 3.3v\ (pin\ 36)\ -\/>\ VCC\ on\ display\ board}}
+\DoxyCodeLine{00034\ \textcolor{comment}{\ \ \ GND\ (pin\ 38)\ \ -\/>\ GND\ on\ display\ board}}
+\DoxyCodeLine{00035\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ Define\ the\ size\ of\ the\ display\ we\ have\ attached.\ This\ can\ vary,\ make\ sure\ you}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ have\ the\ right\ size\ defined\ or\ the\ output\ will\ look\ rather\ odd!}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ Code\ has\ been\ tested\ on\ 128x32\ and\ 128x64\ OLED\ displays}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ SSD1306\_HEIGHT\ 64}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#define\ SSD1306\_WIDTH\ 128}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#define\ SSD1306\_I2C\_ADDR\ \_u(0x3C)}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ 400\ is\ usual,\ but\ often\ these\ can\ be\ overclocked\ to\ improve\ display\ response.}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ Tested\ at\ 1000\ on\ both\ 32\ and\ 84\ pixel\ height\ devices\ and\ it\ worked.}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#define\ SSD1306\_I2C\_CLK\ 3000}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \#define\ SSD1306\_I2C\_CLK\ \ \ \ \ \ \ \ \ \ \ \ \ 1000}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ commands\ (see\ datasheet)}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_MEM\_MODE\ \_u(0x20)}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_COL\_ADDR\ \_u(0x21)}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_PAGE\_ADDR\ \_u(0x22)}}
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_HORIZ\_SCROLL\ \_u(0x26)}}
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_SCROLL\ \_u(0x2E)}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_DISP\_START\_LINE\ \_u(0x40)}}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_CONTRAST\ \_u(0x81)}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_CHARGE\_PUMP\ \_u(0x8D)}}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_SEG\_REMAP\ \_u(0xA0)}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_ENTIRE\_ON\ \_u(0xA4)}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_ALL\_ON\ \_u(0xA5)}}
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_NORM\_DISP\ \_u(0xA6)}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_INV\_DISP\ \_u(0xA7)}}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_MUX\_RATIO\ \_u(0xA8)}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_DISP\ \_u(0xAE)}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_COM\_OUT\_DIR\ \_u(0xC0)}}
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_COM\_OUT\_DIR\_FLIP\ \_u(0xC0)}}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_DISP\_OFFSET\ \_u(0xD3)}}
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_DISP\_CLK\_DIV\ \_u(0xD5)}}
+\DoxyCodeLine{00074\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_PRECHARGE\ \_u(0xD9)}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_COM\_PIN\_CFG\ \_u(0xDA)}}
+\DoxyCodeLine{00076\ \textcolor{preprocessor}{\#define\ SSD1306\_SET\_VCOM\_DESEL\ \_u(0xDB)}}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \textcolor{preprocessor}{\#define\ SSD1306\_PAGE\_HEIGHT\ \_u(8)}}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\#define\ SSD1306\_NUM\_PAGES\ (SSD1306\_HEIGHT\ /\ SSD1306\_PAGE\_HEIGHT)}}
+\DoxyCodeLine{00080\ \textcolor{preprocessor}{\#define\ SSD1306\_BUF\_LEN\ (SSD1306\_NUM\_PAGES\ *\ SSD1306\_WIDTH)}}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{preprocessor}{\#define\ SSD1306\_WRITE\_MODE\ \_u(0xFE)}}
+\DoxyCodeLine{00083\ \textcolor{preprocessor}{\#define\ SSD1306\_READ\_MODE\ \_u(0xFF)}}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structrender__area}{render\_area}}}
+\DoxyCodeLine{00086\ \{}
+\DoxyCodeLine{00087\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{structrender__area_a7c5aa7e143796720da83ba7617bae6f7}{start\_col}};}
+\DoxyCodeLine{00088\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{structrender__area_a05d55875593e17e9904d79a041117b76}{end\_col}};}
+\DoxyCodeLine{00089\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{structrender__area_ad94896f8257c3080daecc25d2cfd80c8}{start\_page}};}
+\DoxyCodeLine{00090\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{structrender__area_a7ec41903b6c708a47e164376560510b1}{end\_page}};}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structrender__area_a20cc6ed09a3d84d74f09f49179a2ccc8}{buflen}};}
+\DoxyCodeLine{00093\ \};}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{ssd1306__i2c_8c_a77408bc9d298f7e429c1744825fff1fd}{calc\_render\_area\_buflen}}(\textcolor{keyword}{struct}\ \mbox{\hyperlink{structrender__area}{render\_area}}\ *area)}
+\DoxyCodeLine{00096\ \{}
+\DoxyCodeLine{00097\ \ \ \ \ \textcolor{comment}{//\ calculate\ how\ long\ the\ flattened\ buffer\ will\ be\ for\ a\ render\ area}}
+\DoxyCodeLine{00098\ \ \ \ \ area-\/>\mbox{\hyperlink{structrender__area_a20cc6ed09a3d84d74f09f49179a2ccc8}{buflen}}\ =\ (area-\/>\mbox{\hyperlink{structrender__area_a05d55875593e17e9904d79a041117b76}{end\_col}}\ -\/\ area-\/>\mbox{\hyperlink{structrender__area_a7c5aa7e143796720da83ba7617bae6f7}{start\_col}}\ +\ 1)\ *\ (area-\/>\mbox{\hyperlink{structrender__area_a7ec41903b6c708a47e164376560510b1}{end\_page}}\ -\/\ area-\/>\mbox{\hyperlink{structrender__area_ad94896f8257c3080daecc25d2cfd80c8}{start\_page}}\ +\ 1);}
+\DoxyCodeLine{00099\ \}}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \textcolor{preprocessor}{\#ifdef\ i2c\_default}}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \textcolor{keywordtype}{void}\ SSD1306\_send\_cmd(uint8\_t\ cmd)}
+\DoxyCodeLine{00104\ \{}
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{comment}{//\ I2C\ write\ process\ expects\ a\ control\ byte\ followed\ by\ data}}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{comment}{//\ this\ "{}data"{}\ can\ be\ a\ command\ or\ data\ to\ follow\ up\ a\ command}}
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{comment}{//\ Co\ =\ 1,\ D/C\ =\ 0\ =>\ the\ driver\ expects\ a\ command}}
+\DoxyCodeLine{00108\ \ \ \ \ uint8\_t\ \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}}[2]\ =\ \{0x80,\ cmd\};}
+\DoxyCodeLine{00109\ \ \ \ \ i2c\_write\_blocking(i2c\_default,\ \mbox{\hyperlink{ssd1306__i2c_8c_a40b6cafd3649547b7cf9629607d04a28}{SSD1306\_I2C\_ADDR}},\ \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ 2,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{00110\ \}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{keywordtype}{void}\ SSD1306\_send\_cmd\_list(uint8\_t\ *\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ \textcolor{keywordtype}{int}\ num)}
+\DoxyCodeLine{00113\ \{}
+\DoxyCodeLine{00114\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ num;\ i++)}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ SSD1306\_send\_cmd(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}}[i]);}
+\DoxyCodeLine{00116\ \}}
+\DoxyCodeLine{00117\ }
+\DoxyCodeLine{00118\ \textcolor{keywordtype}{void}\ SSD1306\_send\_buf(uint8\_t\ \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}}[],\ \textcolor{keywordtype}{int}\ buflen)}
+\DoxyCodeLine{00119\ \{}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{comment}{//\ in\ horizontal\ addressing\ mode,\ the\ column\ address\ pointer\ auto-\/increments}}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{comment}{//\ and\ then\ wraps\ around\ to\ the\ next\ page,\ so\ we\ can\ send\ the\ entire\ frame}}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{comment}{//\ buffer\ in\ one\ gooooooo!}}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{comment}{//\ copy\ our\ frame\ buffer\ into\ a\ new\ buffer\ because\ we\ need\ to\ add\ the\ control\ byte}}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{comment}{//\ to\ the\ beginning}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \ \ uint8\_t\ *temp\_buf\ =\ malloc(buflen\ +\ 1);}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00129\ \ \ \ \ temp\_buf[0]\ =\ 0x40;}
+\DoxyCodeLine{00130\ \ \ \ \ memcpy(temp\_buf\ +\ 1,\ \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ buflen);}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \ \ \ \ i2c\_write\_blocking(i2c\_default,\ \mbox{\hyperlink{ssd1306__i2c_8c_a40b6cafd3649547b7cf9629607d04a28}{SSD1306\_I2C\_ADDR}},\ temp\_buf,\ buflen\ +\ 1,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \ \ \ \ free(temp\_buf);}
+\DoxyCodeLine{00135\ \}}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \textcolor{keywordtype}{void}\ SSD1306\_init()}
+\DoxyCodeLine{00138\ \{}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{comment}{//\ Some\ of\ these\ commands\ are\ not\ strictly\ necessary\ as\ the\ reset}}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{comment}{//\ process\ defaults\ to\ some\ of\ these\ but\ they\ are\ shown\ here}}
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{comment}{//\ to\ demonstrate\ what\ the\ initialization\ sequence\ looks\ like}}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{comment}{//\ Some\ configuration\ values\ are\ recommended\ by\ the\ board\ manufacturer}}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \ \ \ \ uint8\_t\ cmds[]\ =\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a0c52351f68d671acfdd4554a6995097a}{SSD1306\_SET\_DISP}},\ \textcolor{comment}{//\ set\ display\ off}}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ memory\ mapping\ */}}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a4c391bc8411c7493dd8c28ed5611f2de}{SSD1306\_SET\_MEM\_MODE}},\ \textcolor{comment}{//\ set\ memory\ address\ mode\ 0\ =\ horizontal,\ 1\ =\ vertical,\ 2\ =\ page}}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ 0x00,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ horizontal\ addressing\ mode}}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ resolution\ and\ layout\ */}}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a1c1807ddf3965c29141c04eb97f1b9aa}{SSD1306\_SET\_DISP\_START\_LINE}},\ \ \ \ \textcolor{comment}{//\ set\ display\ start\ line\ to\ 0}}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a2b8dd63e62579bbb3e7f0f0701645b37}{SSD1306\_SET\_SEG\_REMAP}}\ |\ 0x01,\ \ \ \textcolor{comment}{//\ set\ segment\ re-\/map,\ column\ address\ 127\ is\ mapped\ to\ SEG0}}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a0b93a82ad4a012d6f45f41e0f6f8004a}{SSD1306\_SET\_MUX\_RATIO}},\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ set\ multiplex\ ratio}}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7}{SSD1306\_HEIGHT}}\ -\/\ 1,\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Display\ height\ -\/\ 1}}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_ac087c51071227a65eba3d2b5cbb36272}{SSD1306\_SET\_COM\_OUT\_DIR}}\ |\ 0x08,\ \textcolor{comment}{//\ set\ COM\ (common)\ output\ scan\ direction.\ Scan\ from\ bottom\ up,\ COM[N-\/1]\ to\ COM0}}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a39e81bacbdd49cea30183201da4d3a44}{SSD1306\_SET\_DISP\_OFFSET}},\ \ \ \ \ \ \ \ \textcolor{comment}{//\ set\ display\ offset}}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ 0x00,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ no\ offset}}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a729363a10befbb7c0759e51234fee9bf}{SSD1306\_SET\_COM\_PIN\_CFG}},\ \ \ \ \ \ \ \ \textcolor{comment}{//\ set\ COM\ (common)\ pins\ hardware\ configuration.\ Board\ specific\ magic\ number.}}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 0x02\ Works\ for\ 128x32,\ 0x12\ Possibly\ works\ for\ 128x64.\ Other\ options\ 0x22,\ 0x32}}
+\DoxyCodeLine{00159\ \textcolor{preprocessor}{\#if\ ((SSD1306\_WIDTH\ ==\ 128)\ \&\&\ (SSD1306\_HEIGHT\ ==\ 32))}}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ 0x02,}
+\DoxyCodeLine{00161\ \textcolor{preprocessor}{\#elif\ ((SSD1306\_WIDTH\ ==\ 128)\ \&\&\ (SSD1306\_HEIGHT\ ==\ 64))}}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ 0x12,}
+\DoxyCodeLine{00163\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \ \ 0x02,}
+\DoxyCodeLine{00165\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ timing\ and\ driving\ scheme\ */}}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a563f4ab583de90b92903a718987558e2}{SSD1306\_SET\_DISP\_CLK\_DIV}},\ \textcolor{comment}{//\ set\ display\ clock\ divide\ ratio}}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \ \ 0x80,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ div\ ratio\ of\ 1,\ standard\ freq}}
+\DoxyCodeLine{00169\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a9e285eddc84b360c27b56505bed3742b}{SSD1306\_SET\_PRECHARGE}},\ \ \ \ \textcolor{comment}{//\ set\ pre-\/charge\ period}}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \ \ 0xF1,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Vcc\ internally\ generated\ on\ our\ board}}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a7a38076df0ee56420a2ca71a3d4a1f23}{SSD1306\_SET\_VCOM\_DESEL}},\ \ \ \textcolor{comment}{//\ set\ VCOMH\ deselect\ level}}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ 0x30,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ 0.83xVcc}}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ display\ */}}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_afe8311a1cf58658999df626f089df45a}{SSD1306\_SET\_CONTRAST}},\ \textcolor{comment}{//\ set\ contrast\ control}}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \ \ 0xFF,}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a589630f17275ac7d7bde0f79376f0ea0}{SSD1306\_SET\_ENTIRE\_ON}},\ \ \ \ \ \textcolor{comment}{//\ set\ entire\ display\ on\ to\ follow\ RAM\ content}}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_acebc478c4f4ca52ba544a80373493785}{SSD1306\_SET\_NORM\_DISP}},\ \ \ \ \ \textcolor{comment}{//\ set\ normal\ (not\ inverted)\ display}}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_ac3c4d8ff67b89782a97b874690f37ca7}{SSD1306\_SET\_CHARGE\_PUMP}},\ \ \ \textcolor{comment}{//\ set\ charge\ pump}}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ 0x14,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Vcc\ internally\ generated\ on\ our\ board}}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a22df8b0e886f3f4bd1e4e89ea6e29a99}{SSD1306\_SET\_SCROLL}}\ |\ 0x00,\ \textcolor{comment}{//\ deactivate\ horizontal\ scrolling\ if\ set.\ This\ is\ necessary\ as\ memory\ writes\ will\ corrupt\ if\ scrolling\ was\ enabled}}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a0c52351f68d671acfdd4554a6995097a}{SSD1306\_SET\_DISP}}\ |\ 0x01,\ \ \ \textcolor{comment}{//\ turn\ display\ on}}
+\DoxyCodeLine{00182\ \ \ \ \ \};}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \ \ \ \ SSD1306\_send\_cmd\_list(cmds,\ count\_of(cmds));}
+\DoxyCodeLine{00185\ \}}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \textcolor{keywordtype}{void}\ SSD1306\_scroll(\textcolor{keywordtype}{bool}\ on)}
+\DoxyCodeLine{00188\ \{}
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{comment}{//\ configure\ horizontal\ scrolling}}
+\DoxyCodeLine{00190\ \ \ \ \ uint8\_t\ cmds[]\ =\ \{}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a056353e4b606d157a0afa9485d0b4e83}{SSD1306\_SET\_HORIZ\_SCROLL}}\ |\ 0x00,}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \ \ 0x00,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ dummy\ byte}}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ \ \ 0x01,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ start\ page\ 0}}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \ \ 0x0F,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ time\ interval}}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ 0x02,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ end\ page\ 3\ SSD1306\_NUM\_PAGES\ ??}}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ 0x00,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ dummy\ byte}}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \ \ 0xFF,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ dummy\ byte}}
+\DoxyCodeLine{00198\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a22df8b0e886f3f4bd1e4e89ea6e29a99}{SSD1306\_SET\_SCROLL}}\ |\ (on\ ?\ 0x01\ :\ 0)\ \textcolor{comment}{//\ Start/stop\ scrolling}}
+\DoxyCodeLine{00199\ \ \ \ \ \};}
+\DoxyCodeLine{00200\ }
+\DoxyCodeLine{00201\ \ \ \ \ SSD1306\_send\_cmd\_list(cmds,\ count\_of(cmds));}
+\DoxyCodeLine{00202\ \}}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \textcolor{keywordtype}{void}\ render(uint8\_t\ *\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ \textcolor{keyword}{struct}\ \mbox{\hyperlink{structrender__area}{render\_area}}\ *area)}
+\DoxyCodeLine{00205\ \{}
+\DoxyCodeLine{00206\ \ \ \ \ \textcolor{comment}{//\ update\ a\ portion\ of\ the\ display\ with\ a\ render\ area}}
+\DoxyCodeLine{00207\ \ \ \ \ uint8\_t\ cmds[]\ =\ \{}
+\DoxyCodeLine{00208\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_a7337bc8e876beda93b26c1a6782ad397}{SSD1306\_SET\_COL\_ADDR}},}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ \ \ area-\/>\mbox{\hyperlink{structrender__area_a7c5aa7e143796720da83ba7617bae6f7}{start\_col}},}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ \ \ area-\/>\mbox{\hyperlink{structrender__area_a05d55875593e17e9904d79a041117b76}{end\_col}},}
+\DoxyCodeLine{00211\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{ssd1306__i2c_8c_ac3688afcf61a4ffccb0ee6ef165dd7a6}{SSD1306\_SET\_PAGE\_ADDR}},}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ \ \ area-\/>\mbox{\hyperlink{structrender__area_ad94896f8257c3080daecc25d2cfd80c8}{start\_page}},}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \ \ area-\/>\mbox{\hyperlink{structrender__area_a7ec41903b6c708a47e164376560510b1}{end\_page}}\};}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \ \ \ \ SSD1306\_send\_cmd\_list(cmds,\ count\_of(cmds));}
+\DoxyCodeLine{00216\ \ \ \ \ SSD1306\_send\_buf(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ area-\/>\mbox{\hyperlink{structrender__area_a20cc6ed09a3d84d74f09f49179a2ccc8}{buflen}});}
+\DoxyCodeLine{00217\ \}}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ SetPixel(uint8\_t\ *\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ \textcolor{keywordtype}{int}\ x,\ \textcolor{keywordtype}{int}\ y,\ \textcolor{keywordtype}{bool}\ on)}
+\DoxyCodeLine{00220\ \{}
+\DoxyCodeLine{00221\ \ \ \ \ assert(x\ >=\ 0\ \&\&\ x\ <\ SSD1306\_WIDTH\ \&\&\ y\ >=\ 0\ \&\&\ y\ <\ \mbox{\hyperlink{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7}{SSD1306\_HEIGHT}});}
+\DoxyCodeLine{00222\ }
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{comment}{//\ The\ calculation\ to\ determine\ the\ correct\ bit\ to\ set\ depends\ on\ which\ address}}
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{comment}{//\ mode\ we\ are\ in.\ This\ code\ assumes\ horizontal}}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{comment}{//\ The\ video\ ram\ on\ the\ SSD1306\ is\ split\ up\ in\ to\ 8\ rows,\ one\ bit\ per\ pixel.}}
+\DoxyCodeLine{00227\ \ \ \ \ \textcolor{comment}{//\ Each\ row\ is\ 128\ long\ by\ 8\ pixels\ high,\ each\ byte\ vertically\ arranged,\ so\ byte\ 0\ is\ x=0,\ y=0-\/>7,}}
+\DoxyCodeLine{00228\ \ \ \ \ \textcolor{comment}{//\ byte\ 1\ is\ x\ =\ 1,\ y=0-\/>7\ etc}}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00230\ \ \ \ \ \textcolor{comment}{//\ This\ code\ could\ be\ optimised,\ but\ is\ like\ this\ for\ clarity.\ The\ compiler}}
+\DoxyCodeLine{00231\ \ \ \ \ \textcolor{comment}{//\ should\ do\ a\ half\ decent\ job\ optimising\ it\ anyway.}}
+\DoxyCodeLine{00232\ }
+\DoxyCodeLine{00233\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ BytesPerRow\ =\ \mbox{\hyperlink{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b}{SSD1306\_WIDTH}};\ \textcolor{comment}{//\ x\ pixels,\ 1bpp,\ but\ each\ row\ is\ 8\ pixel\ high,\ so\ (x\ /\ 8)\ *\ 8}}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \ \ \ \ \textcolor{keywordtype}{int}\ byte\_idx\ =\ (y\ /\ 8)\ *\ BytesPerRow\ +\ x;}
+\DoxyCodeLine{00236\ \ \ \ \ uint8\_t\ \textcolor{keywordtype}{byte}\ =\ \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}}[byte\_idx];}
+\DoxyCodeLine{00237\ }
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keywordflow}{if}\ (on)}
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{byte}\ |=\ 1\ <<\ (y\ \%\ 8);}
+\DoxyCodeLine{00240\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{byte}\ \&=\ \string~(1\ <<\ (y\ \%\ 8));}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \ \ \ \ \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}}[byte\_idx]\ =\ byte;}
+\DoxyCodeLine{00244\ \}}
+\DoxyCodeLine{00245\ \textcolor{comment}{//\ Basic\ Bresenhams.}}
+\DoxyCodeLine{00246\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ DrawLine(uint8\_t\ *\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ \textcolor{keywordtype}{int}\ x0,\ \textcolor{keywordtype}{int}\ y0,\ \textcolor{keywordtype}{int}\ x1,\ \textcolor{keywordtype}{int}\ y1,\ \textcolor{keywordtype}{bool}\ on)}
+\DoxyCodeLine{00247\ \{}
+\DoxyCodeLine{00248\ }
+\DoxyCodeLine{00249\ \ \ \ \ \textcolor{keywordtype}{int}\ dx\ =\ abs(x1\ -\/\ x0);}
+\DoxyCodeLine{00250\ \ \ \ \ \textcolor{keywordtype}{int}\ sx\ =\ x0\ <\ x1\ ?\ 1\ :\ -\/1;}
+\DoxyCodeLine{00251\ \ \ \ \ \textcolor{keywordtype}{int}\ dy\ =\ -\/abs(y1\ -\/\ y0);}
+\DoxyCodeLine{00252\ \ \ \ \ \textcolor{keywordtype}{int}\ sy\ =\ y0\ <\ y1\ ?\ 1\ :\ -\/1;}
+\DoxyCodeLine{00253\ \ \ \ \ \textcolor{keywordtype}{int}\ err\ =\ dx\ +\ dy;}
+\DoxyCodeLine{00254\ \ \ \ \ \textcolor{keywordtype}{int}\ e2;}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{keywordflow}{while}\ (\textcolor{keyword}{true})}
+\DoxyCodeLine{00257\ \ \ \ \ \{}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \ \ SetPixel(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ x0,\ y0,\ on);}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (x0\ ==\ x1\ \&\&\ y0\ ==\ y1)}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ e2\ =\ 2\ *\ err;}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (e2\ >=\ dy)}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \ \ \ \ \ \ err\ +=\ dy;}
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \ \ \ \ \ \ x0\ +=\ sx;}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (e2\ <=\ dx)}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00270\ \ \ \ \ \ \ \ \ \ \ \ \ err\ +=\ dx;}
+\DoxyCodeLine{00271\ \ \ \ \ \ \ \ \ \ \ \ \ y0\ +=\ sy;}
+\DoxyCodeLine{00272\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00273\ \ \ \ \ \}}
+\DoxyCodeLine{00274\ \}}
+\DoxyCodeLine{00275\ }
+\DoxyCodeLine{00276\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{int}\ GetFontIndex(uint8\_t\ ch)}
+\DoxyCodeLine{00277\ \{}
+\DoxyCodeLine{00278\ \ \ \ \ \textcolor{keywordflow}{if}\ (ch\ >=\ \textcolor{charliteral}{'A'}\ \&\&\ ch\ <=\ \textcolor{charliteral}{'Z'})}
+\DoxyCodeLine{00279\ \ \ \ \ \{}
+\DoxyCodeLine{00280\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ ch\ -\/\ \textcolor{charliteral}{'A'}\ +\ 1;}
+\DoxyCodeLine{00281\ \ \ \ \ \}}
+\DoxyCodeLine{00282\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (ch\ >=\ \textcolor{charliteral}{'0'}\ \&\&\ ch\ <=\ \textcolor{charliteral}{'9'})}
+\DoxyCodeLine{00283\ \ \ \ \ \{}
+\DoxyCodeLine{00284\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ ch\ -\/\ \textcolor{charliteral}{'0'}\ +\ 27;}
+\DoxyCodeLine{00285\ \ \ \ \ \}}
+\DoxyCodeLine{00286\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;\ \textcolor{comment}{//\ Not\ got\ that\ char\ so\ space.}}
+\DoxyCodeLine{00288\ \}}
+\DoxyCodeLine{00289\ }
+\DoxyCodeLine{00290\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ WriteChar(uint8\_t\ *\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ int16\_t\ x,\ int16\_t\ y,\ uint8\_t\ ch)}
+\DoxyCodeLine{00291\ \{}
+\DoxyCodeLine{00292\ \ \ \ \ \textcolor{keywordflow}{if}\ (x\ >\ \mbox{\hyperlink{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b}{SSD1306\_WIDTH}}\ -\/\ 8\ ||\ y\ >\ \mbox{\hyperlink{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7}{SSD1306\_HEIGHT}}\ -\/\ 8)}
+\DoxyCodeLine{00293\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \ \ \ \ \textcolor{comment}{//\ For\ the\ moment,\ only\ write\ on\ Y\ row\ boundaries\ (every\ 8\ vertical\ pixels)}}
+\DoxyCodeLine{00296\ \ \ \ \ y\ =\ y\ /\ 8;}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ \ \ \ \ ch\ =\ toupper(ch);}
+\DoxyCodeLine{00299\ \ \ \ \ \textcolor{keywordtype}{int}\ idx\ =\ GetFontIndex(ch);}
+\DoxyCodeLine{00300\ \ \ \ \ \textcolor{keywordtype}{int}\ fb\_idx\ =\ y\ *\ 128\ +\ x;}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00302\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ 8;\ i++)}
+\DoxyCodeLine{00303\ \ \ \ \ \{}
+\DoxyCodeLine{00304\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}}[fb\_idx++]\ =\ font[idx\ *\ 8\ +\ i];}
+\DoxyCodeLine{00305\ \ \ \ \ \}}
+\DoxyCodeLine{00306\ \}}
+\DoxyCodeLine{00307\ }
+\DoxyCodeLine{00308\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ WriteString(uint8\_t\ *\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ int16\_t\ x,\ int16\_t\ y,\ \textcolor{keywordtype}{char}\ *str)}
+\DoxyCodeLine{00309\ \{}
+\DoxyCodeLine{00310\ \ \ \ \ \textcolor{comment}{//\ Cull\ out\ any\ string\ off\ the\ screen}}
+\DoxyCodeLine{00311\ \ \ \ \ \textcolor{keywordflow}{if}\ (x\ >\ \mbox{\hyperlink{ssd1306__i2c_8c_ae5a2aa8865dd03537b97fd1c9037371b}{SSD1306\_WIDTH}}\ -\/\ 8\ ||\ y\ >\ \mbox{\hyperlink{ssd1306__i2c_8c_a4e9409448a0df95c1686670e09b457b7}{SSD1306\_HEIGHT}}\ -\/\ 8)}
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00313\ }
+\DoxyCodeLine{00314\ \ \ \ \ \textcolor{keywordflow}{while}\ (*str)}
+\DoxyCodeLine{00315\ \ \ \ \ \{}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ \ \ WriteChar(\mbox{\hyperlink{mikrofon___p_d_m___p_c_m_8c_a4e8cd118a089d89b0c294858512ec590}{buf}},\ x,\ y,\ *str++);}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ x\ +=\ 8;}
+\DoxyCodeLine{00318\ \ \ \ \ \}}
+\DoxyCodeLine{00319\ \}}
+\DoxyCodeLine{00320\ }
+\DoxyCodeLine{00321\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00322\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00323\ \textcolor{comment}{int\ maid()}}
+\DoxyCodeLine{00324\ \textcolor{comment}{\{}}
+\DoxyCodeLine{00325\ \textcolor{comment}{\ \ \ \ stdio\_init\_all();}}
+\DoxyCodeLine{00326\ \textcolor{comment}{}}
+\DoxyCodeLine{00327\ \textcolor{comment}{\#if\ !defined(i2c\_default)\ ||\ !defined(PICO\_DEFAULT\_I2C\_SDA\_PIN)\ ||\ !defined(PICO\_DEFAULT\_I2C\_SCL\_PIN)}}
+\DoxyCodeLine{00328\ \textcolor{comment}{\#warning\ i2c\ /\ SSD1306\_i2d\ example\ requires\ a\ board\ with\ I2C\ pins}}
+\DoxyCodeLine{00329\ \textcolor{comment}{\ \ \ \ puts("{}Default\ I2C\ pins\ were\ not\ defined"{});}}
+\DoxyCodeLine{00330\ \textcolor{comment}{\#else}}
+\DoxyCodeLine{00331\ \textcolor{comment}{\ \ \ \ //\ useful\ information\ for\ picotool}}
+\DoxyCodeLine{00332\ \textcolor{comment}{\ \ \ \ bi\_decl(bi\_2pins\_with\_func(PICO\_DEFAULT\_I2C\_SDA\_PIN,\ PICO\_DEFAULT\_I2C\_SCL\_PIN,\ GPIO\_FUNC\_I2C));}}
+\DoxyCodeLine{00333\ \textcolor{comment}{\ \ \ \ bi\_decl(bi\_program\_description("{}SSD1306\ OLED\ driver\ I2C\ example\ for\ the\ Raspberry\ Pi\ Pico"{}));}}
+\DoxyCodeLine{00334\ \textcolor{comment}{}}
+\DoxyCodeLine{00335\ \textcolor{comment}{\ \ \ \ printf("{}Hello,\ SSD1306\ OLED\ display!\ Look\ at\ my\ raspberries..\(\backslash\)n"{});}}
+\DoxyCodeLine{00336\ \textcolor{comment}{}}
+\DoxyCodeLine{00337\ \textcolor{comment}{\ \ \ \ //\ I2C\ is\ "{}open\ drain"{},\ pull\ ups\ to\ keep\ signal\ high\ when\ no\ data\ is\ being}}
+\DoxyCodeLine{00338\ \textcolor{comment}{\ \ \ \ //\ sent}}
+\DoxyCodeLine{00339\ \textcolor{comment}{\ \ \ \ i2c\_init(i2c\_default,\ SSD1306\_I2C\_CLK\ *\ 1000);}}
+\DoxyCodeLine{00340\ \textcolor{comment}{\ \ \ \ gpio\_set\_function(PICO\_DEFAULT\_I2C\_SDA\_PIN,\ GPIO\_FUNC\_I2C);}}
+\DoxyCodeLine{00341\ \textcolor{comment}{\ \ \ \ gpio\_set\_function(PICO\_DEFAULT\_I2C\_SCL\_PIN,\ GPIO\_FUNC\_I2C);}}
+\DoxyCodeLine{00342\ \textcolor{comment}{\ \ \ \ gpio\_pull\_up(PICO\_DEFAULT\_I2C\_SDA\_PIN);}}
+\DoxyCodeLine{00343\ \textcolor{comment}{\ \ \ \ gpio\_pull\_up(PICO\_DEFAULT\_I2C\_SCL\_PIN);}}
+\DoxyCodeLine{00344\ \textcolor{comment}{}}
+\DoxyCodeLine{00345\ \textcolor{comment}{\ \ \ \ //\ run\ through\ the\ complete\ initialization\ process}}
+\DoxyCodeLine{00346\ \textcolor{comment}{\ \ \ \ SSD1306\_init();}}
+\DoxyCodeLine{00347\ \textcolor{comment}{}}
+\DoxyCodeLine{00348\ \textcolor{comment}{\ \ \ \ //\ Initialize\ render\ area\ for\ entire\ frame\ (SSD1306\_WIDTH\ pixels\ by\ SSD1306\_NUM\_PAGES\ pages)}}
+\DoxyCodeLine{00349\ \textcolor{comment}{\ \ \ \ struct\ render\_area\ frame\_area\ =\ \{}}
+\DoxyCodeLine{00350\ \textcolor{comment}{\ \ \ \ \ \ \ \ start\_col\ :\ 0,}}
+\DoxyCodeLine{00351\ \textcolor{comment}{\ \ \ \ \ \ \ \ end\_col\ :\ SSD1306\_WIDTH\ -\/\ 1,}}
+\DoxyCodeLine{00352\ \textcolor{comment}{\ \ \ \ \ \ \ \ start\_page\ :\ 0,}}
+\DoxyCodeLine{00353\ \textcolor{comment}{\ \ \ \ \ \ \ \ end\_page\ :\ SSD1306\_NUM\_PAGES\ -\/\ 1}}
+\DoxyCodeLine{00354\ \textcolor{comment}{\ \ \ \ \};}}
+\DoxyCodeLine{00355\ \textcolor{comment}{}}
+\DoxyCodeLine{00356\ \textcolor{comment}{\ \ \ \ calc\_render\_area\_buflen(\&frame\_area);}}
+\DoxyCodeLine{00357\ \textcolor{comment}{}}
+\DoxyCodeLine{00358\ \textcolor{comment}{\ \ \ \ //\ zero\ the\ entire\ display}}
+\DoxyCodeLine{00359\ \textcolor{comment}{\ \ \ \ uint8\_t\ buf[SSD1306\_BUF\_LEN];}}
+\DoxyCodeLine{00360\ \textcolor{comment}{\ \ \ \ memset(buf,\ 0,\ SSD1306\_BUF\_LEN);}}
+\DoxyCodeLine{00361\ \textcolor{comment}{\ \ \ \ render(buf,\ \&frame\_area);}}
+\DoxyCodeLine{00362\ \textcolor{comment}{}}
+\DoxyCodeLine{00363\ \textcolor{comment}{\ \ \ \ //\ intro\ sequence:\ flash\ the\ screen\ 3\ times}}
+\DoxyCodeLine{00364\ \textcolor{comment}{\ \ \ \ for\ (int\ i\ =\ 0;\ i\ <\ 3;\ i++)}}
+\DoxyCodeLine{00365\ \textcolor{comment}{\ \ \ \ \{}}
+\DoxyCodeLine{00366\ \textcolor{comment}{\ \ \ \ \ \ \ \ SSD1306\_send\_cmd(SSD1306\_SET\_ALL\_ON);\ //\ Set\ all\ pixels\ on}}
+\DoxyCodeLine{00367\ \textcolor{comment}{\ \ \ \ \ \ \ \ sleep\_ms(500);}}
+\DoxyCodeLine{00368\ \textcolor{comment}{\ \ \ \ \ \ \ \ SSD1306\_send\_cmd(SSD1306\_SET\_ENTIRE\_ON);\ //\ go\ back\ to\ following\ RAM\ for\ pixel\ state}}
+\DoxyCodeLine{00369\ \textcolor{comment}{\ \ \ \ \ \ \ \ sleep\_ms(500);}}
+\DoxyCodeLine{00370\ \textcolor{comment}{\ \ \ \ \}}}
+\DoxyCodeLine{00371\ \textcolor{comment}{}}
+\DoxyCodeLine{00372\ \textcolor{comment}{\ \ \ \ //\ render\ 3\ cute\ little\ raspberries}}
+\DoxyCodeLine{00373\ \textcolor{comment}{\ \ \ \ struct\ render\_area\ area\ =\ \{}}
+\DoxyCodeLine{00374\ \textcolor{comment}{\ \ \ \ \ \ \ \ start\_page\ :\ 0,}}
+\DoxyCodeLine{00375\ \textcolor{comment}{\ \ \ \ \ \ \ \ end\_page\ :\ (IMG\_HEIGHT\ /\ SSD1306\_PAGE\_HEIGHT)\ -\/\ 1}}
+\DoxyCodeLine{00376\ \textcolor{comment}{\ \ \ \ \};}}
+\DoxyCodeLine{00377\ \textcolor{comment}{}}
+\DoxyCodeLine{00378\ \textcolor{comment}{\ \ \ \ //\ restart:}}
+\DoxyCodeLine{00379\ \textcolor{comment}{}}
+\DoxyCodeLine{00380\ \textcolor{comment}{\ \ \ \ area.start\_col\ =\ 0;}}
+\DoxyCodeLine{00381\ \textcolor{comment}{\ \ \ \ area.end\_col\ =\ IMG\_WIDTH\ -\/\ 1;}}
+\DoxyCodeLine{00382\ \textcolor{comment}{}}
+\DoxyCodeLine{00383\ \textcolor{comment}{\ \ \ \ calc\_render\_area\_buflen(\&area);}}
+\DoxyCodeLine{00384\ \textcolor{comment}{}}
+\DoxyCodeLine{00385\ \textcolor{comment}{\ \ \ \ uint8\_t\ offset\ =\ 5\ +\ IMG\_WIDTH;\ //\ 5px\ padding}}
+\DoxyCodeLine{00386\ \textcolor{comment}{}}
+\DoxyCodeLine{00387\ \textcolor{comment}{\ \ \ \ for\ (int\ i\ =\ 0;\ i\ <\ 3;\ i++)}}
+\DoxyCodeLine{00388\ \textcolor{comment}{\ \ \ \ \{}}
+\DoxyCodeLine{00389\ \textcolor{comment}{\ \ \ \ \ \ \ \ render(raspberry26x32,\ \&area);}}
+\DoxyCodeLine{00390\ \textcolor{comment}{\ \ \ \ \ \ \ \ area.start\_col\ +=\ offset;}}
+\DoxyCodeLine{00391\ \textcolor{comment}{\ \ \ \ \ \ \ \ area.end\_col\ +=\ offset;}}
+\DoxyCodeLine{00392\ \textcolor{comment}{\ \ \ \ \}}}
+\DoxyCodeLine{00393\ \textcolor{comment}{}}
+\DoxyCodeLine{00394\ \textcolor{comment}{\ \ \ \ SSD1306\_scroll(true);}}
+\DoxyCodeLine{00395\ \textcolor{comment}{\ \ \ \ sleep\_ms(5000);}}
+\DoxyCodeLine{00396\ \textcolor{comment}{\ \ \ \ SSD1306\_scroll(false);}}
+\DoxyCodeLine{00397\ \textcolor{comment}{}}
+\DoxyCodeLine{00398\ \textcolor{comment}{\ \ \ \ char\ *text[]\ =\ \{}}
+\DoxyCodeLine{00399\ \textcolor{comment}{\ \ \ \ \ \ \ \ "{}A\ long\ time\ ago"{},}}
+\DoxyCodeLine{00400\ \textcolor{comment}{\ \ \ \ \ \ \ \ "{}\ \ on\ an\ OLED\ "{},}}
+\DoxyCodeLine{00401\ \textcolor{comment}{\ \ \ \ \ \ \ \ "{}\ \ \ display"{},}}
+\DoxyCodeLine{00402\ \textcolor{comment}{\ \ \ \ \ \ \ \ "{}\ far\ far\ away"{},}}
+\DoxyCodeLine{00403\ \textcolor{comment}{\ \ \ \ \ \ \ \ "{}Lived\ a\ small"{},}}
+\DoxyCodeLine{00404\ \textcolor{comment}{\ \ \ \ \ \ \ \ "{}red\ raspberry"{},}}
+\DoxyCodeLine{00405\ \textcolor{comment}{\ \ \ \ \ \ \ \ "{}by\ the\ name\ of"{},}}
+\DoxyCodeLine{00406\ \textcolor{comment}{\ \ \ \ \ \ \ \ "{}\ \ \ \ PICO"{}\};}}
+\DoxyCodeLine{00407\ \textcolor{comment}{}}
+\DoxyCodeLine{00408\ \textcolor{comment}{\ \ \ \ int\ y\ =\ 0;}}
+\DoxyCodeLine{00409\ \textcolor{comment}{\ \ \ \ for\ (uint\ i\ =\ 0;\ i\ <\ count\_of(text);\ i++)}}
+\DoxyCodeLine{00410\ \textcolor{comment}{\ \ \ \ \{}}
+\DoxyCodeLine{00411\ \textcolor{comment}{\ \ \ \ \ \ \ \ WriteString(buf,\ 5,\ y,\ text[i]);}}
+\DoxyCodeLine{00412\ \textcolor{comment}{\ \ \ \ \ \ \ \ y\ +=\ 8;}}
+\DoxyCodeLine{00413\ \textcolor{comment}{\ \ \ \ \}}}
+\DoxyCodeLine{00414\ \textcolor{comment}{\ \ \ \ render(buf,\ \&frame\_area);}}
+\DoxyCodeLine{00415\ \textcolor{comment}{}}
+\DoxyCodeLine{00416\ \textcolor{comment}{\ \ \ \ //\ Test\ the\ display\ invert\ function}}
+\DoxyCodeLine{00417\ \textcolor{comment}{\ \ \ \ sleep\_ms(3000);}}
+\DoxyCodeLine{00418\ \textcolor{comment}{\ \ \ \ printf("{}invert"{});}}
+\DoxyCodeLine{00419\ \textcolor{comment}{\ \ \ \ SSD1306\_send\_cmd(SSD1306\_SET\_INV\_DISP);}}
+\DoxyCodeLine{00420\ \textcolor{comment}{\ \ \ \ sleep\_ms(3000);}}
+\DoxyCodeLine{00421\ \textcolor{comment}{\ \ \ \ printf("{}normal"{});}}
+\DoxyCodeLine{00422\ \textcolor{comment}{\ \ \ \ SSD1306\_send\_cmd(SSD1306\_SET\_NORM\_DISP);}}
+\DoxyCodeLine{00423\ \textcolor{comment}{}}
+\DoxyCodeLine{00424\ \textcolor{comment}{\ \ \ \ bool\ pix\ =\ true;}}
+\DoxyCodeLine{00425\ \textcolor{comment}{\ \ \ \ for\ (int\ i\ =\ 0;\ i\ <\ 2;\ i++)}}
+\DoxyCodeLine{00426\ \textcolor{comment}{\ \ \ \ \{}}
+\DoxyCodeLine{00427\ \textcolor{comment}{\ \ \ \ \ \ \ \ for\ (int\ x\ =\ 0;\ x\ <\ SSD1306\_WIDTH;\ x++)}}
+\DoxyCodeLine{00428\ \textcolor{comment}{\ \ \ \ \ \ \ \ \{}}
+\DoxyCodeLine{00429\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ DrawLine(buf,\ x,\ 0,\ SSD1306\_WIDTH\ -\/\ 1\ -\/\ x,\ SSD1306\_HEIGHT\ -\/\ 1,\ pix);}}
+\DoxyCodeLine{00430\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ render(buf,\ \&frame\_area);}}
+\DoxyCodeLine{00431\ \textcolor{comment}{\ \ \ \ \ \ \ \ \}}}
+\DoxyCodeLine{00432\ \textcolor{comment}{}}
+\DoxyCodeLine{00433\ \textcolor{comment}{\ \ \ \ \ \ \ \ for\ (int\ y\ =\ SSD1306\_HEIGHT\ -\/\ 1;\ y\ >=\ 0;\ y-\/-\/)}}
+\DoxyCodeLine{00434\ \textcolor{comment}{\ \ \ \ \ \ \ \ \{}}
+\DoxyCodeLine{00435\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ DrawLine(buf,\ 0,\ y,\ SSD1306\_WIDTH\ -\/\ 1,\ SSD1306\_HEIGHT\ -\/\ 1\ -\/\ y,\ pix);}}
+\DoxyCodeLine{00436\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ render(buf,\ \&frame\_area);}}
+\DoxyCodeLine{00437\ \textcolor{comment}{\ \ \ \ \ \ \ \ \}}}
+\DoxyCodeLine{00438\ \textcolor{comment}{\ \ \ \ \ \ \ \ pix\ =\ false;}}
+\DoxyCodeLine{00439\ \textcolor{comment}{\ \ \ \ \}}}
+\DoxyCodeLine{00440\ \textcolor{comment}{}}
+\DoxyCodeLine{00441\ \textcolor{comment}{\ \ \ \ //\ goto\ restart;}}
+\DoxyCodeLine{00442\ \textcolor{comment}{}}
+\DoxyCodeLine{00443\ \textcolor{comment}{\#endif}}
+\DoxyCodeLine{00444\ \textcolor{comment}{\ \ \ \ return\ 0;}}
+\DoxyCodeLine{00445\ \textcolor{comment}{\}}}
+\DoxyCodeLine{00446\ \textcolor{comment}{*/}}
+
+\end{DoxyCode}

@@ -1,0 +1,5 @@
+var searchData=
+[
+  ['att_5fread_5fcallback_0',['att_read_callback',['../server__common_8c.html#aea294c660abc532598d0cecc93a56f0e',1,'att_read_callback(hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t offset, uint8_t *buffer, uint16_t buffer_size):&#160;server_common.c'],['../server__common_8h.html#aea294c660abc532598d0cecc93a56f0e',1,'att_read_callback(hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t offset, uint8_t *buffer, uint16_t buffer_size):&#160;server_common.c']]],
+  ['att_5fwrite_5fcallback_1',['att_write_callback',['../server__common_8c.html#a1836ea028b04701685deb4229f0f9baa',1,'att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t transaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size):&#160;server_common.c'],['../server__common_8h.html#a1836ea028b04701685deb4229f0f9baa',1,'att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t transaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size):&#160;server_common.c']]]
+];

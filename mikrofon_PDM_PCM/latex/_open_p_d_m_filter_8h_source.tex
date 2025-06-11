@@ -1,0 +1,85 @@
+\doxysection{Open\+PDMFilter.\+h}
+\hypertarget{_open_p_d_m_filter_8h_source}{}\label{_open_p_d_m_filter_8h_source}\mbox{\hyperlink{_open_p_d_m_filter_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00028\ \ }
+\DoxyCodeLine{00029\ \ }
+\DoxyCodeLine{00030\ \textcolor{comment}{/*\ Define\ to\ prevent\ recursive\ inclusion\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/*/}}
+\DoxyCodeLine{00031\ \ }
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#ifndef\ \_\_OPENPDMFILTER\_H}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#define\ \_\_OPENPDMFILTER\_H}}
+\DoxyCodeLine{00034\ \ }
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00036\ \ \ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00038\ \ }
+\DoxyCodeLine{00039\ \ }
+\DoxyCodeLine{00040\ \textcolor{comment}{/*\ Includes\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/*/}}
+\DoxyCodeLine{00041\ \ }
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00043\ \ }
+\DoxyCodeLine{00044\ \ }
+\DoxyCodeLine{00045\ \textcolor{comment}{/*\ Definitions\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/*/}}
+\DoxyCodeLine{00046\ \ }
+\DoxyCodeLine{00047\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00048\ \textcolor{comment}{\ *\ Enable\ to\ use\ a\ Look-\/Up\ Table\ to\ improve\ performances\ while\ using\ more\ FLASH}}
+\DoxyCodeLine{00049\ \textcolor{comment}{\ *\ and\ RAM\ memory.}}
+\DoxyCodeLine{00050\ \textcolor{comment}{\ *\ Note:\ Without\ Look-\/Up\ Table\ up\ to\ stereo@16KHz\ configuration\ is\ supported.}}
+\DoxyCodeLine{00051\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#define\ USE\_LUT}}
+\DoxyCodeLine{00053\ \ }
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#define\ SINCN\ \ \ \ \ \ \ \ \ \ \ \ 3}}
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#define\ DECIMATION\_MAX\ 128}}
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#ifdef\ PICO\_BUILD}}
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#define\ FILTER\_GAIN\ \ \ \ \ Param-\/>Gain}}
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#define\ FILTER\_GAIN\ \ \ \ \ 16}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00061\ \ }
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\#define\ HTONS(A)\ ((((uint16\_t)(A)\ \&\ 0xff00)\ >>\ 8)\ |\ \(\backslash\)}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (((uint16\_t)(A)\ \&\ 0x00ff)\ <<\ 8))}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\#define\ RoundDiv(a,\ b)\ \ \ \ (((a)>0)?(((a)+(b)/2)/(b)):(((a)-\/(b)/2)/(b)))}}
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#define\ SaturaLH(N,\ L,\ H)\ (((N)<(L))?(L):(((N)>(H))?(H):(N)))}}
+\DoxyCodeLine{00066\ \ }
+\DoxyCodeLine{00067\ \ }
+\DoxyCodeLine{00068\ \textcolor{comment}{/*\ Types\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/*/}}
+\DoxyCodeLine{00069\ \ }
+\DoxyCodeLine{00070\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{/*\ Public\ */}}
+\DoxyCodeLine{00072\ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a36f812b986aa9568fef7d198fd8e5ff7}{LP\_HZ}};}
+\DoxyCodeLine{00073\ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a55e572aa28ca0a39c623537be7b3ae33}{HP\_HZ}};}
+\DoxyCodeLine{00074\ \ \ uint16\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a3304bb04ffb47c4f16aca62c2c850001}{Fs}};}
+\DoxyCodeLine{00075\ \ \ uint8\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a336d33d9700fc603429729722e39a4d3}{In\_MicChannels}};}
+\DoxyCodeLine{00076\ \ \ uint8\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a6f8762dfccf35c54268f0b424cfe4432}{Out\_MicChannels}};}
+\DoxyCodeLine{00077\ \ \ uint8\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_af97a04b111bf5494faa93d2f30bd9f86}{Decimation}};}
+\DoxyCodeLine{00078\ \ \ uint8\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a1fa574af6c73a20044513171d7cc6636}{MaxVolume}};}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\#ifdef\ PICO\_BUILD}}
+\DoxyCodeLine{00080\ \ \ uint8\_t\ Gain;}
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{/*\ Private\ */}}
+\DoxyCodeLine{00083\ \ \ uint32\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_ace59b1906cb3c4c79f8b80834593cce8}{Coef}}[\mbox{\hyperlink{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}{SINCN}}];}
+\DoxyCodeLine{00084\ \ \ uint16\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a23b20ed7e54d8042e360028594dffbf9}{FilterLen}};}
+\DoxyCodeLine{00085\ \ \ int64\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_afb6ca603e844ca94dbce0d101add51df}{OldOut}},\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_ad199ac70ec54f681f614446e56c441f0}{OldIn}},\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a73754746ba7f7199d9dd6a6bc4246b4c}{OldZ}};}
+\DoxyCodeLine{00086\ \ \ uint16\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_ab716ce28faee176bc9429efab5530527}{LP\_ALFA}};}
+\DoxyCodeLine{00087\ \ \ uint16\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_a6815bbd6fd531d44f1e793e76b31a02a}{HP\_ALFA}};}
+\DoxyCodeLine{00088\ \ \ uint16\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_ad843ece320e208d341f219c31d494bfa}{bit}}[5];}
+\DoxyCodeLine{00089\ \ \ uint16\_t\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct_ab0549c1b5ea980a02e7eab77e21fea49}{byte}};}
+\DoxyCodeLine{00090\ \}\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\_InitStruct}};}
+\DoxyCodeLine{00091\ \ }
+\DoxyCodeLine{00092\ \ }
+\DoxyCodeLine{00093\ \textcolor{comment}{/*\ Exported\ functions\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00094\ \ }
+\DoxyCodeLine{00095\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_open_p_d_m_filter_8h_a6ba633fba5b11139c89eaa108db67401}{Open\_PDM\_Filter\_Init}}(\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\_InitStruct}}\ *init\_struct);}
+\DoxyCodeLine{00096\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_open_p_d_m_filter_8h_a199d06075e9967a101ddb2836d44a115}{Open\_PDM\_Filter\_64}}(uint8\_t*\ data,\ uint16\_t*\ data\_out,\ uint16\_t\ mic\_gain,\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\_InitStruct}}\ *init\_struct);}
+\DoxyCodeLine{00097\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_open_p_d_m_filter_8h_a16065f0882aa5affb7eea52213803e84}{Open\_PDM\_Filter\_128}}(uint8\_t*\ data,\ uint16\_t*\ data\_out,\ uint16\_t\ mic\_gain,\ \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\_InitStruct}}\ *init\_struct);}
+\DoxyCodeLine{00098\ \ }
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00100\ \}}
+\DoxyCodeLine{00101\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00102\ \ }
+\DoxyCodeLine{00103\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ \_\_OPENPDMFILTER\_H}}
+\DoxyCodeLine{00104\ \ }
+\DoxyCodeLine{00105\ \textcolor{comment}{/************************\ (C)\ COPYRIGHT\ STMicroelectronics\ *****END\ OF\ FILE****/}}
+\DoxyCodeLine{00106\ \ }
+
+\end{DoxyCode}

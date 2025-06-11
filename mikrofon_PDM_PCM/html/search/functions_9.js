@@ -1,0 +1,6 @@
+var searchData=
+[
+  ['open_5fpdm_5ffilter_5f128_0',['Open_PDM_Filter_128',['../_open_p_d_m_filter_8c.html#a9fa9feafeb6613c2c2576a8e4ee14ef4',1,'Open_PDM_Filter_128(uint8_t *data, uint16_t *dataOut, uint16_t volume, TPDMFilter_InitStruct *Param):&#160;OpenPDMFilter.c'],['../_open_p_d_m_filter_8h.html#a16065f0882aa5affb7eea52213803e84',1,'Open_PDM_Filter_128(uint8_t *data, uint16_t *data_out, uint16_t mic_gain, TPDMFilter_InitStruct *init_struct):&#160;OpenPDMFilter.c']]],
+  ['open_5fpdm_5ffilter_5f64_1',['Open_PDM_Filter_64',['../_open_p_d_m_filter_8c.html#a1d964c9db9bad1ce7f684cb01ce7633e',1,'Open_PDM_Filter_64(uint8_t *data, uint16_t *dataOut, uint16_t volume, TPDMFilter_InitStruct *Param):&#160;OpenPDMFilter.c'],['../_open_p_d_m_filter_8h.html#a199d06075e9967a101ddb2836d44a115',1,'Open_PDM_Filter_64(uint8_t *data, uint16_t *data_out, uint16_t mic_gain, TPDMFilter_InitStruct *init_struct):&#160;OpenPDMFilter.c']]],
+  ['open_5fpdm_5ffilter_5finit_2',['Open_PDM_Filter_Init',['../_open_p_d_m_filter_8c.html#ac84acaccd8022c5e1028ee696da81313',1,'Open_PDM_Filter_Init(TPDMFilter_InitStruct *Param):&#160;OpenPDMFilter.c'],['../_open_p_d_m_filter_8h.html#a6ba633fba5b11139c89eaa108db67401',1,'Open_PDM_Filter_Init(TPDMFilter_InitStruct *init_struct):&#160;OpenPDMFilter.c']]]
+];

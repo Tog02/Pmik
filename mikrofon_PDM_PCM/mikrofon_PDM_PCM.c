@@ -1,21 +1,22 @@
 
 /******************************************************************************
  * Projekt:        [Dźwiękopułapka]
- * Plik:           main.c
- * Opis:           [Dźwiękopułapka wykrywa dziwne dźwięki, a następnie nagrywa
+ * @plik:           main.c
+ * @opis:           [Dźwiękopułapka wykrywa dziwne dźwięki, a następnie nagrywa
  *                  je by nie umknęły uwadze użytkownika. Wysyła też powiadomienie
  *                  po zakończeniu nagrywania
  *                  Korzysta z mikrofonu PDM, karty sd, oraz ekranu ssd1306]
  *
- * Autorzy:        Tomasz Głowacki
- *                 Bartłomiej Korzeniewski
+ * @autorzy:
+ *                  Tomasz Głowacki
+ *                  Bartłomiej Korzeniewski
  *
- * Data utworzenia:      [2025-02-15]
- * Ostatnia modyfikacja: [2025-05-20]
+ * @data Utworzenia:      [2025-02-15]
+ * @ostatnia modyfikacja: [2025-06-11]
  *
- * Kompilator:      [np. arm-none-eabi-gcc]
- * Środowisko:      [np. VS Code + PlatformIO]
- * Platforma:       [np. Raspberry Pi Pico 2]
+ * @Kompilator:      [ arm-none-eabi-gcc]
+ * @Środowisko:      [ VS Code + PlatformIO]
+ * @Platforma:       [ Raspberry Pi Pico 2]
  ******************************************************************************/
 
 #include <stdio.h>
@@ -69,11 +70,11 @@
 int val;            // Wartość wyświetlana przez bluetooth
 bool was_recording; // Przy zakończeniu nagrywania
 
-bool want_start = false; // flaga rozpocznij nagrywanie
-bool blue_start = false;
+bool want_start = false; // Flaga startu od ble
+bool blue_start = false; // Główna flaga startu nagrywania
 
-bool buffer_full = false;
-bool recording = false;
+bool buffer_full = false; // Chyba śmieć
+bool recording = false;   // Flaga kontynuacji nagrywania
 
 uint16_t pcm_buffer[PCM_BUFFER_SIZE]; // Bufor na dane PCM
 uint32_t pdm_buffer[BUFFER_SIZE];     // Bufor przechowujący surowe dane PDM
@@ -97,7 +98,9 @@ static btstack_timer_source_t heartbeat;
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 
 char file_names[MAX_FILES][MAX_FILENAME_LEN]; // Tablica nazw plików
-int file_count = 0;
+int file_count = 0;                           // Liczba plików
+
+// Funkcje rdzenia 0.
 
 static void heartbeat_handler(struct btstack_timer_source *ts)
 {
@@ -113,12 +116,23 @@ static void heartbeat_handler(struct btstack_timer_source *ts)
     btstack_run_loop_set_timer(ts, HEARTBEAT_PERIOD_MS);
     btstack_run_loop_add_timer(ts);
 }
+
 struct render_area frame_area = {
     .start_col = 0,
     .end_col = SSD1306_WIDTH - 1,
     .start_page = 0,
     .end_page = SSD1306_NUM_PAGES - 1};
 
+/**
+ * @brief Wyświetla listę rekordów na ekranie, uwzględniając przewijanie i zaznaczony element.
+ *
+ * Funkcja aktualizuje zawartość bufora ekranu na podstawie bieżącego zaznaczenia (selectedRecord)
+ * oraz pozycji przewijania (scrollOffset). Zaznaczony rekord jest wizualnie wyróżniony.
+ * Widoczne rekordy są ograniczone do VISIBLE_LINES. Na koniec bufor jest renderowany na ekran.
+ *
+ * @param void Brak parametrów wejściowych.
+ * @return void Funkcja nie zwraca żadnej wartości.
+ */
 void DisplayRecords(void)
 {
     memset(buf, 0, sizeof(buf));
@@ -148,6 +162,16 @@ void DisplayRecords(void)
     render(buf, &frame_area);
 }
 
+/**
+ * @brief Rozpoczyna proces nagrywania dla wskazanego slotu.
+ *
+ * Funkcja ustawia flagę `want_start` na true, wyświetla informacje o rozpoczęciu nagrywania
+ * zarówno w konsoli (przez `printf`), jak i na ekranie OLED. Nazwa pliku jest pobierana z tablicy `file_names`
+ * na podstawie indeksu `recordIndex`.
+ *
+ * @param recordIndex Indeks slotu (rekordu), do którego ma zostać rozpoczęte nagrywanie.
+ * @return void Funkcja nie zwraca żadnej wartości.
+ */
 void startRecording(int recordIndex)
 {
     printf(" ROZPOCZYNANIE NAGRANIA DO SLOTU %d (%s)\n", recordIndex, file_names[recordIndex]);
@@ -159,7 +183,16 @@ void startRecording(int recordIndex)
 
     render(buf, &frame_area);
 }
-
+/**
+ * @brief Kończy proces nagrywania i odświeża ekran.
+ *
+ * Funkcja kończy nagrywanie, ustawiając flagę `recording` na 0 oraz przywraca widok listy rekordów
+ * za pomocą `DisplayRecords()`. Następnie renderuje zmodyfikowany bufor na ekranie.
+ * Komentarz sugeruje możliwość czyszczenia napisu "REC", choć linia ta jest obecnie zakomentowana.
+ *
+ * @param void Brak parametrów wejściowych.
+ * @return void Funkcja nie zwraca żadnej wartości.
+ */
 void stopRecording()
 {
     DisplayRecords();
@@ -167,34 +200,19 @@ void stopRecording()
     // Wyczyść "REC" napis (nadpisz spacjami)
     // WriteString(buf, SSD1306_WIDTH - 28, 0, "    ");
     render(buf, &frame_area);
-    /* stop_adc_recording(); // lub inna Twoja funkcja
-      LoadRecordingsFromSD();
-      DisplayRecords();
-      void LoadRecordingsFromSD()
-  {
-      DIR dir;
-      FILINFO fno;
-
-      totalRecords = 0;
-
-      if (f_opendir(&dir, "/recordings") == FR_OK)
-      {
-          while (f_readdir(&dir, &fno) == FR_OK && fno.fname[0] && totalRecords < MAX_RECORDS)
-          {
-              if (!(fno.fattrib & AM_DIR))  // pomiń katalogi
-              {
-                  strncpy(records[totalRecords], fno.fname, MAX_FILENAME_LEN - 1);
-                  records[totalRecords][MAX_FILENAME_LEN - 1] = '\0';
-                  totalRecords++;
-              }
-          }
-          f_closedir(&dir);
-
-      }
-  }*/
 }
 
-// Debounce timeout callback
+/**
+ * @brief Callback wywoływany po upływie czasu debounce dla przycisków.
+ *
+ * Funkcja ponownie włącza przerwanie dla danego pinu GPIO, a następnie interpretuje, który przycisk został naciśnięty
+ * (na podstawie `user_data`) i wykonuje odpowiednią akcję – przewijanie rekordów lub rozpoczęcie/zakończenie nagrywania.
+ * Podczas nagrywania ignorowane są inne przyciski niż `BUTTON_PLAY_PIN`.
+ *
+ * @param id Identyfikator alarmu przypisanego do callbacka (niewykorzystywany w funkcji).
+ * @param user_data Wskaźnik do numeru pinu GPIO, rzutowany na `uint`.
+ * @return int64_t Zwraca 0 – zgodnie z konwencją, by nie ponawiać alarmu.
+ */
 int64_t debounce_timeout_callback(alarm_id_t id, void *user_data)
 {
     uint gpio = (uint)(uintptr_t)user_data;
@@ -234,33 +252,43 @@ int64_t debounce_timeout_callback(alarm_id_t id, void *user_data)
     return 0;
 }
 
-// ISR: wyłącza przerwanie i uruchamia debounce
+/**
+ * @brief Obsługuje przerwanie od przycisku i inicjuje mechanizm debounce.
+ *
+ * Funkcja wyłącza przerwanie dla danego pinu GPIO, aby zapobiec drganiom styków (debounce),
+ * a następnie ustawia alarm czasowy, który po określonym czasie (`DEBOUNCE_TIME_MS`)
+ * wywoła funkcję `debounce_timeout_callback`.
+ *
+ * @param gpio Numer pinu GPIO, który wywołał przerwanie.
+ * @param events Typ zdarzenia przerwania (np. zbocze opadające).
+ * @return void Funkcja nie zwraca żadnej wartości.
+ */
 void button_isr(uint gpio, uint32_t events)
 {
     gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_FALL, false);
     add_alarm_in_ms(DEBOUNCE_TIME_MS, debounce_timeout_callback, (void *)(uintptr_t)gpio, false);
 }
-
-// Obsługa przerwania DMA
+/**
+ * @brief Obsługa przerwania DMA
+ */
 void dma_handler()
 {
     uint32_t ints = dma_hw->ints0; // odczytujemy maskę aktywnych przerwań
     if (ints & (1u << dma_channel))
     {
         dma_hw->ints0 = 1u << dma_channel; // czyścimy flagę
+
+        // Wysłanie sygnału do rdzenia 1
         if (recording)
         {
             was_recording = true;
-            multicore_fifo_push_blocking(BUFFER_READY); // Wysłanie sygnału do rdzenia 1 //
+            multicore_fifo_push_blocking(BUFFER_READY); // Kontynuuj nagrywanie
         }
         else
         {
-            multicore_fifo_push_blocking(BUFFER_READY_NOT_RECORDING); // Wysłanie sygnału do
+            multicore_fifo_push_blocking(BUFFER_READY_NOT_RECORDING); // Nasłuchuj
         }
 
-        // dma_complete = true;
-
-        // Bufor właśnie został wypełniony przez DMA, sygnalizuj do rdzenia 1
         ready_pdm_buffer = active_pdm_buffer;
 
         // Przełącz na drugi bufor
@@ -281,17 +309,18 @@ void dma_handler()
         if ((!recording) && was_recording)
         {
             was_recording = false;
-            multicore_fifo_push_blocking(3);
+            multicore_fifo_push_blocking(END_RECORD); // Zakończ nagrywanie
             stopRecording();
         }
-
-        //**************************** */ to throw away
-
-        //**************************** */
     }
 }
 
-// Inicjalizacja DMA do pobierania danych z PIO
+/**
+ * @brief Inicjalizacja DMA do pobierania danych z PIO
+ *
+ * @param pio  wskaźnik do używanego PIO
+ * @param sm   wskaźnik do używanej maszyny stanów PIO
+ */
 void init_dma(PIO pio, uint sm)
 {
     dma_channel = 10;                                     // dma_claim_unused_channel(true);                            // Przydzielenie dostępnego kanału DMA
@@ -316,7 +345,12 @@ void init_dma(PIO pio, uint sm)
     printf("DMA config ready");
 }
 
-// Inicjalizacja interfejsu PDM w PIO
+/**
+ * @brief inicjalizacja PIO do obsługi PDM
+ *
+ * @param pio  wskaźnik do używanego PIO
+ * @param sm   wskaźnik do używanej maszyny stanów PIO
+ */
 void init_pdm(PIO pio, uint sm)
 {
     uint offset = pio_add_program(pio, &pdm_microphone_program);
@@ -324,20 +358,40 @@ void init_pdm(PIO pio, uint sm)
     pio_sm_set_clkdiv(pio, sm, PDM_CLOCK_DIV);
 }
 
-// Przetwarzanie danych PDM na PCM i zapis do pliku
-void init_audio_filter(TPDMFilter_InitStruct filter)
+/**
+ * @brief Rozpoczyna nasłuchiwanie
+ *
+ * @param pio  wskaźnik do używanego PIO
+ * @param sm   wskaźnik do używanej maszyny stanów PIO
+ */
+void start_listenig(PIO pio, uint sm)
 {
-    filter.LP_HZ = 8000;
-    filter.HP_HZ = 10;
-    filter.Fs = FREQ_PCM * 1000;
-    filter.In_MicChannels = 1;
-    filter.Out_MicChannels = CHANNELS;
-    filter.Decimation = DECIMATION;
-    filter.MaxVolume = 64;
-    Open_PDM_Filter_Init(&filter);
+
+    //
+    init_dma(pio, sm);                 // Inicjalizacja DMA do przesyłania danych
+    pio_sm_set_enabled(pio, sm, true); // Start PIO SM
 }
 
-// Tworzenie nagłówka pliku WAV
+/**
+ * @brief Rozpoczyna nagrywanie,
+ * wysyła sygnał do rdzenia 1 i ustawia flagę nagrywania
+ */
+void start_recording()
+{
+    multicore_fifo_push_blocking(NEW_RECORD);
+    recording = true;
+}
+
+// Funkcje dla rdzenia 1.
+
+/**
+ * @brief Tworzy i zapisuje na kartę sd nagłówek pliku WAV
+ *
+ * @param *file wskaźnik do pliku
+ *
+ * @return 1 jeśli udało się zapisać
+ *         0 jeśli nie udało się zapisać
+ */
 int write_wav_header(FIL *file)
 {
     UINT bw;
@@ -382,6 +436,11 @@ int write_wav_header(FIL *file)
         return 0;
 }
 
+/**
+ * @brief Zakończenie nagłówka pliku WAV
+ *
+ * @param *file wskaźnik do pliku
+ */
 void finalize_wav_file(FIL *file)
 {
     // Oblicz aktualny rozmiar pliku
@@ -400,9 +459,16 @@ void finalize_wav_file(FIL *file)
     f_write(file, &data_chunk_size, 4, &bw);
 }
 
+/**
+ * @brief Filtracja danych PDM do PCM
+ *
+ * @param *filter wskaźnik do struktury filtra
+ */
 void do_filter(TPDMFilter_InitStruct *filter)
 {
-    uint8_t *pdm8 = (uint8_t *)ready_pdm_buffer;
+    uint8_t *pdm8 = (uint8_t *)ready_pdm_buffer; // Zamiana z 32 na 8-bitowe dane
+
+    // Filtracaj całego bufora
     for (uint8_t i = 0; i < 8; i++)
     {
         uint8_t *chunk = &pdm8[i * IN_DATA_LEN];
@@ -410,6 +476,11 @@ void do_filter(TPDMFilter_InitStruct *filter)
     }
 }
 
+/**
+ * @brief Zapis danych z bufora pcm do pliku na karcie sd
+ *
+ * @param *file wskaźnik do pliku
+ */
 void write_buffer(FIL *file)
 {
     UINT bw;
@@ -420,10 +491,16 @@ void write_buffer(FIL *file)
     }
 }
 
+/**
+ * @brief Zczytaj wszystkie pliki z głównego katalogu na karcie sd
+ *
+ * @param *path wskaźnik do przeszukiwanego katalogu
+ *
+ * @return file_count liczba znalezionych plików
+ */
 int list_files(const char *path)
 {
-    // FATFS fs;
-    // FRESULT res = f_mount(&fs, "", 1); // "" = domyślny napęd, 1 = mount now
+
     DIR dir;
     FILINFO fno;
     int file_count = 0;
@@ -457,10 +534,19 @@ int list_files(const char *path)
 
     f_closedir(&dir);
     val = file_count + 1;
-    // f_unmount("");
     return file_count;
 }
 
+/**
+ * @brief Sprawdź czy plik o podanym numerze już istnieje
+ *
+ * @param number numer pliku do sprawdzenia
+ * @param file_names[][] tablica z nazwami plików
+ * @param file_count liczba plików
+ *
+ * @return true jeśli plik już istnieje,
+ * false jeśli nie istnieje
+ */
 bool is_filename_used(int number, char file_names[][MAX_FILENAME_LEN], int file_count)
 {
     char expected_name[MAX_FILENAME_LEN];
@@ -476,6 +562,14 @@ bool is_filename_used(int number, char file_names[][MAX_FILENAME_LEN], int file_
     return false;
 }
 
+/**
+ * @brief Stwórz nową nazwę pliku
+ *
+ * @param *out_name wskaźnik do tworzonej nazwy
+ * @param max_len maksymalna długość nazwy
+ * @param file_names[][] tablica z nazwami plików
+ * @param file_count liczba plików
+ */
 void generate_unique_filename_from_list(char *out_name, size_t max_len,
                                         char file_names[][MAX_FILENAME_LEN], int file_count)
 {
@@ -494,16 +588,21 @@ void generate_unique_filename_from_list(char *out_name, size_t max_len,
     snprintf(out_name, max_len, "nagranie9999.wav");
 }
 
+// Rdzeń 1
 void core1_entry()
 {
     char new_name[MAX_FILENAME_LEN];
+    // Inicjalizacja sysytemu plików i karty sd
     FATFS fs;
     FIL file;
     UINT bw;
     FRESULT result;
     f_mount(&fs, "", 1);
+
+    // Zczytanie plików z karty sd
     list_files("/");
 
+    // Inicjalizacja filtra PDM PCM
     TPDMFilter_InitStruct filter;
     filter.LP_HZ = 8000;
     filter.HP_HZ = 10;
@@ -513,7 +612,6 @@ void core1_entry()
     filter.Decimation = DECIMATION;
     filter.MaxVolume = 64;
     Open_PDM_Filter_Init(&filter);
-    // init_audio_filter(filter);
 
     while (1)
     {
@@ -551,7 +649,7 @@ void core1_entry()
         {
             finalize_wav_file(&file);
             f_close(&file); // Zamknięcie pliku po zakończeniu nagrywania
-            // f_unmount("");
+            list_files("/");
             printf("\nnagranie.wav ready\n");
         }
         break;
@@ -568,30 +666,18 @@ void core1_entry()
     }
 }
 
-void start_listenig(PIO pio, uint sm)
-{
-
-    //
-    init_dma(pio, sm); // Inicjalizacja DMA do przesyłania danych
-    pio_sm_set_enabled(pio, sm, true);
-}
-void start_recording()
-{
-    multicore_fifo_push_blocking(1);
-    recording = true;
-}
-// Główna funkcja programu
+// Główna funkcja programu, Rdzeń 0.
 int main()
 {
 
     stdio_init_all();
 
+    multicore_launch_core1(core1_entry);
+
     cyw43_arch_init();
 
     l2cap_init();
     sm_init();
-
-    stdio_init_all();
 
     gpio_init(15);
     gpio_set_dir(15, GPIO_OUT);
@@ -643,33 +729,30 @@ int main()
     // turn on bluetooth!
     hci_power_control(HCI_POWER_ON);
 
-    printf("Hello world");
     sleep_ms(1000);
-    printf("Hello again");
+    printf("Hello World");
 
     PIO pio = pio0;
     uint sm = 0;
 
-    multicore_launch_core1(core1_entry);
     was_recording = false;
     init_pdm(pio, sm); // Inicjalizacja mikrofonu PDM w PIO
     pio_sm_set_enabled(pio, sm, false);
     active_pdm_buffer = pdm_buffer; // Start z bufora 0
-    // start_recording(pio, sm);
-    sleep_ms(1000);
+
     DisplayRecords();
     start_listenig(pio, sm);
+
     while (1)
     {
 
-        // printf("temp: %d\n", current_temp);
-        if (blue_start)
+        if (blue_start) // Flaga startu od ble
         {
-            startRecording(selectedRecord);
+            startRecording(selectedRecord); // Sprawdzić / zmienić na val
             blue_start = 0;
         }
 
-        if (want_start)
+        if (want_start) // Główna flaga startu nagrywania
         {
             start_recording();
             want_start = false;
@@ -677,11 +760,9 @@ int main()
             {
 
                 att_server_request_can_send_now_event(con_handle);
-                // current_temp = current_temp + 200;
             }
         }
-        sleep_ms(1000); // Sprawdzić wfi();
-        // tight_loop_contents(); // Zapewnienie ciągłej pracy
+        wfi(); // sleep_ms(100); // Sprawdzić wfi();
     }
 
     return 0;

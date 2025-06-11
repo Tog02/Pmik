@@ -1,0 +1,183 @@
+\doxysection{Open\+PDMFilter.\+c File Reference}
+\hypertarget{_open_p_d_m_filter_8c}{}\label{_open_p_d_m_filter_8c}\index{OpenPDMFilter.c@{OpenPDMFilter.c}}
+
+
+Open PDM audio software decoding Library. This Library is used to decode and reconstruct the audio signal produced by ST MEMS microphone (MP45\+Dxxx, MP34\+Dxxx).  
+
+
+{\ttfamily \#include "{}Open\+PDMFilter.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_a3503a82fa1e187b8d3cb5ebe78353be9}{filter\+\_\+table\+\_\+mono\+\_\+64}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint8\+\_\+t sincn)
+\item 
+int32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_a01deeb6f6979f63ccd944de5e7fa139f}{filter\+\_\+table\+\_\+stereo\+\_\+64}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint8\+\_\+t sincn)
+\item 
+int32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_a64312a9e02486613a188d2be16b4747d}{filter\+\_\+table\+\_\+mono\+\_\+128}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint8\+\_\+t sincn)
+\item 
+int32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_afc9aa2821992ad11eefca60eea5958f0}{filter\+\_\+table\+\_\+stereo\+\_\+128}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint8\+\_\+t sincn)
+\item 
+void \mbox{\hyperlink{_open_p_d_m_filter_8c_ac369a12e7a95887b0fec3de7c333b6f5}{convolve}} (uint32\+\_\+t Signal\mbox{[}$\,$\mbox{]}, unsigned short Signal\+Len, uint32\+\_\+t Kernel\mbox{[}$\,$\mbox{]}, unsigned short Kernel\+Len, uint32\+\_\+t Result\mbox{[}$\,$\mbox{]})
+\item 
+void \mbox{\hyperlink{_open_p_d_m_filter_8c_ac84acaccd8022c5e1028ee696da81313}{Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+\+Init}} (\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}Param)
+\item 
+void \mbox{\hyperlink{_open_p_d_m_filter_8c_a1d964c9db9bad1ce7f684cb01ce7633e}{Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+64}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint16\+\_\+t \texorpdfstring{$\ast$}{*}data\+Out, uint16\+\_\+t volume, \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}Param)
+\item 
+void \mbox{\hyperlink{_open_p_d_m_filter_8c_a9fa9feafeb6613c2c2576a8e4ee14ef4}{Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+128}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint16\+\_\+t \texorpdfstring{$\ast$}{*}data\+Out, uint16\+\_\+t volume, \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}Param)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_aec34de5d735d33a9ae4c370040338f93}{div\+\_\+const}} = 0
+\item 
+int64\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_a60df47cb75d65808c3dba1055ef6488c}{sub\+\_\+const}} = 0
+\item 
+uint32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_a92eb79156d27c2679b40aee4d0cecd52}{sinc}} \mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}} \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}{SINCN}}\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_a39cb9f496e8ee7167dd52893f91b529e}{sinc1}} \mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}}\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_a312bd53bbaafdf0f65f5c7a89902e716}{sinc2}} \mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}} \texorpdfstring{$\ast$}{*}2\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_af535f1351a77c456201b2152fa19c694}{coef}} \mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}{SINCN}}\mbox{]}\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}}\mbox{]}
+\item 
+int32\+\_\+t \mbox{\hyperlink{_open_p_d_m_filter_8c_a8ac1bee785a31c6fc2af9526d9834894}{lut}} \mbox{[}256\mbox{]}\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}}/8\mbox{]}\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}{SINCN}}\mbox{]}
+\item 
+int32\+\_\+t(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_open_p_d_m_filter_8c_ad5130e5c0c91da816b8813beb6ee8af3}{filter\+\_\+tables\+\_\+64}} \mbox{[}2\mbox{]})(uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint8\+\_\+t sincn) = \{\mbox{\hyperlink{_open_p_d_m_filter_8c_a3503a82fa1e187b8d3cb5ebe78353be9}{filter\+\_\+table\+\_\+mono\+\_\+64}}, \mbox{\hyperlink{_open_p_d_m_filter_8c_a01deeb6f6979f63ccd944de5e7fa139f}{filter\+\_\+table\+\_\+stereo\+\_\+64}}\}
+\item 
+int32\+\_\+t(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_open_p_d_m_filter_8c_acfc0778e6cc12b0de428922199226955}{filter\+\_\+tables\+\_\+128}} \mbox{[}2\mbox{]})(uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint8\+\_\+t sincn) = \{\mbox{\hyperlink{_open_p_d_m_filter_8c_a64312a9e02486613a188d2be16b4747d}{filter\+\_\+table\+\_\+mono\+\_\+128}}, \mbox{\hyperlink{_open_p_d_m_filter_8c_afc9aa2821992ad11eefca60eea5958f0}{filter\+\_\+table\+\_\+stereo\+\_\+128}}\}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Open PDM audio software decoding Library. This Library is used to decode and reconstruct the audio signal produced by ST MEMS microphone (MP45\+Dxxx, MP34\+Dxxx). 
+
+\begin{DoxyAuthor}{Author}
+CL 
+\end{DoxyAuthor}
+\begin{DoxyVersion}{Version}
+V1.\+0.\+0 
+\end{DoxyVersion}
+\begin{DoxyDate}{Date}
+9-\/September-\/2015 
+\end{DoxyDate}
+\begin{DoxyAttention}{Attention}
+
+\end{DoxyAttention}
+\doxysubsubsection*{\begin{center}\copyright{} COPYRIGHT 2018 STMicroelectronics\end{center} }
+
+Licensed under the Apache License, Version 2.\+0 (the "{}\+License"{}); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+\href{http://www.apache.org/licenses/LICENSE-2.0}{\texttt{http\+://www.\+apache.\+org/licenses/\+LICENSE-\/2.\+0}}
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "{}\+AS IS"{} BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License. 
+
+\label{doc-func-members}
+\Hypertarget{_open_p_d_m_filter_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{_open_p_d_m_filter_8c_ac369a12e7a95887b0fec3de7c333b6f5}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!convolve@{convolve}}
+\index{convolve@{convolve}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{convolve()}{convolve()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_ac369a12e7a95887b0fec3de7c333b6f5} 
+void convolve (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{Signal}{\mbox{[}$\,$\mbox{]}, }\item[{unsigned short}]{Signal\+Len}{, }\item[{uint32\+\_\+t}]{Kernel}{\mbox{[}$\,$\mbox{]}, }\item[{unsigned short}]{Kernel\+Len}{, }\item[{uint32\+\_\+t}]{Result}{\mbox{[}$\,$\mbox{]}}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8c_a64312a9e02486613a188d2be16b4747d}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!filter\_table\_mono\_128@{filter\_table\_mono\_128}}
+\index{filter\_table\_mono\_128@{filter\_table\_mono\_128}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{filter\_table\_mono\_128()}{filter\_table\_mono\_128()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a64312a9e02486613a188d2be16b4747d} 
+int32\+\_\+t filter\+\_\+table\+\_\+mono\+\_\+128 (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint8\+\_\+t}]{sincn}{}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8c_a3503a82fa1e187b8d3cb5ebe78353be9}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!filter\_table\_mono\_64@{filter\_table\_mono\_64}}
+\index{filter\_table\_mono\_64@{filter\_table\_mono\_64}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{filter\_table\_mono\_64()}{filter\_table\_mono\_64()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a3503a82fa1e187b8d3cb5ebe78353be9} 
+int32\+\_\+t filter\+\_\+table\+\_\+mono\+\_\+64 (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint8\+\_\+t}]{sincn}{}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8c_afc9aa2821992ad11eefca60eea5958f0}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!filter\_table\_stereo\_128@{filter\_table\_stereo\_128}}
+\index{filter\_table\_stereo\_128@{filter\_table\_stereo\_128}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{filter\_table\_stereo\_128()}{filter\_table\_stereo\_128()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_afc9aa2821992ad11eefca60eea5958f0} 
+int32\+\_\+t filter\+\_\+table\+\_\+stereo\+\_\+128 (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint8\+\_\+t}]{sincn}{}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8c_a01deeb6f6979f63ccd944de5e7fa139f}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!filter\_table\_stereo\_64@{filter\_table\_stereo\_64}}
+\index{filter\_table\_stereo\_64@{filter\_table\_stereo\_64}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{filter\_table\_stereo\_64()}{filter\_table\_stereo\_64()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a01deeb6f6979f63ccd944de5e7fa139f} 
+int32\+\_\+t filter\+\_\+table\+\_\+stereo\+\_\+64 (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint8\+\_\+t}]{sincn}{}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8c_a9fa9feafeb6613c2c2576a8e4ee14ef4}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!Open\_PDM\_Filter\_128@{Open\_PDM\_Filter\_128}}
+\index{Open\_PDM\_Filter\_128@{Open\_PDM\_Filter\_128}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{Open\_PDM\_Filter\_128()}{Open\_PDM\_Filter\_128()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a9fa9feafeb6613c2c2576a8e4ee14ef4} 
+void Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+128 (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint16\+\_\+t \texorpdfstring{$\ast$}{*}}]{data\+Out}{, }\item[{uint16\+\_\+t}]{volume}{, }\item[{\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}}]{Param}{}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8c_a1d964c9db9bad1ce7f684cb01ce7633e}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!Open\_PDM\_Filter\_64@{Open\_PDM\_Filter\_64}}
+\index{Open\_PDM\_Filter\_64@{Open\_PDM\_Filter\_64}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{Open\_PDM\_Filter\_64()}{Open\_PDM\_Filter\_64()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a1d964c9db9bad1ce7f684cb01ce7633e} 
+void Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+64 (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint16\+\_\+t \texorpdfstring{$\ast$}{*}}]{data\+Out}{, }\item[{uint16\+\_\+t}]{volume}{, }\item[{\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}}]{Param}{}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8c_ac84acaccd8022c5e1028ee696da81313}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!Open\_PDM\_Filter\_Init@{Open\_PDM\_Filter\_Init}}
+\index{Open\_PDM\_Filter\_Init@{Open\_PDM\_Filter\_Init}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{Open\_PDM\_Filter\_Init()}{Open\_PDM\_Filter\_Init()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_ac84acaccd8022c5e1028ee696da81313} 
+void Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+\+Init (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}}]{Param}{}\end{DoxyParamCaption})}
+
+
+
+\label{doc-var-members}
+\Hypertarget{_open_p_d_m_filter_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{_open_p_d_m_filter_8c_af535f1351a77c456201b2152fa19c694}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!coef@{coef}}
+\index{coef@{coef}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{coef}{coef}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_af535f1351a77c456201b2152fa19c694} 
+uint32\+\_\+t coef\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}{SINCN}}\mbox{]}\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}}\mbox{]}}
+
+\Hypertarget{_open_p_d_m_filter_8c_aec34de5d735d33a9ae4c370040338f93}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!div\_const@{div\_const}}
+\index{div\_const@{div\_const}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{div\_const}{div\_const}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_aec34de5d735d33a9ae4c370040338f93} 
+uint32\+\_\+t div\+\_\+const = 0}
+
+\Hypertarget{_open_p_d_m_filter_8c_acfc0778e6cc12b0de428922199226955}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!filter\_tables\_128@{filter\_tables\_128}}
+\index{filter\_tables\_128@{filter\_tables\_128}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{filter\_tables\_128}{filter\_tables\_128}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_acfc0778e6cc12b0de428922199226955} 
+int32\+\_\+t(\texorpdfstring{$\ast$}{*} filter\+\_\+tables\+\_\+128\mbox{[}2\mbox{]})(uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint8\+\_\+t sincn) (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint8\+\_\+t}]{sincn}{}\end{DoxyParamCaption}) = \{\mbox{\hyperlink{_open_p_d_m_filter_8c_a64312a9e02486613a188d2be16b4747d}{filter\+\_\+table\+\_\+mono\+\_\+128}}, \mbox{\hyperlink{_open_p_d_m_filter_8c_afc9aa2821992ad11eefca60eea5958f0}{filter\+\_\+table\+\_\+stereo\+\_\+128}}\}}
+
+\Hypertarget{_open_p_d_m_filter_8c_ad5130e5c0c91da816b8813beb6ee8af3}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!filter\_tables\_64@{filter\_tables\_64}}
+\index{filter\_tables\_64@{filter\_tables\_64}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{filter\_tables\_64}{filter\_tables\_64}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_ad5130e5c0c91da816b8813beb6ee8af3} 
+int32\+\_\+t(\texorpdfstring{$\ast$}{*} filter\+\_\+tables\+\_\+64\mbox{[}2\mbox{]})(uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint8\+\_\+t sincn) (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint8\+\_\+t}]{sincn}{}\end{DoxyParamCaption}) = \{\mbox{\hyperlink{_open_p_d_m_filter_8c_a3503a82fa1e187b8d3cb5ebe78353be9}{filter\+\_\+table\+\_\+mono\+\_\+64}}, \mbox{\hyperlink{_open_p_d_m_filter_8c_a01deeb6f6979f63ccd944de5e7fa139f}{filter\+\_\+table\+\_\+stereo\+\_\+64}}\}}
+
+\Hypertarget{_open_p_d_m_filter_8c_a8ac1bee785a31c6fc2af9526d9834894}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!lut@{lut}}
+\index{lut@{lut}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{lut}{lut}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a8ac1bee785a31c6fc2af9526d9834894} 
+int32\+\_\+t lut\mbox{[}256\mbox{]}\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}}/8\mbox{]}\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}{SINCN}}\mbox{]}}
+
+\Hypertarget{_open_p_d_m_filter_8c_a92eb79156d27c2679b40aee4d0cecd52}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!sinc@{sinc}}
+\index{sinc@{sinc}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{sinc}{sinc}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a92eb79156d27c2679b40aee4d0cecd52} 
+uint32\+\_\+t sinc\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}} \texorpdfstring{$\ast$}{*}\mbox{\hyperlink{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}{SINCN}}\mbox{]}}
+
+\Hypertarget{_open_p_d_m_filter_8c_a39cb9f496e8ee7167dd52893f91b529e}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!sinc1@{sinc1}}
+\index{sinc1@{sinc1}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{sinc1}{sinc1}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a39cb9f496e8ee7167dd52893f91b529e} 
+uint32\+\_\+t sinc1\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}}\mbox{]}}
+
+\Hypertarget{_open_p_d_m_filter_8c_a312bd53bbaafdf0f65f5c7a89902e716}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!sinc2@{sinc2}}
+\index{sinc2@{sinc2}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{sinc2}{sinc2}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a312bd53bbaafdf0f65f5c7a89902e716} 
+uint32\+\_\+t sinc2\mbox{[}\mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}} \texorpdfstring{$\ast$}{*}2\mbox{]}}
+
+\Hypertarget{_open_p_d_m_filter_8c_a60df47cb75d65808c3dba1055ef6488c}\index{OpenPDMFilter.c@{OpenPDMFilter.c}!sub\_const@{sub\_const}}
+\index{sub\_const@{sub\_const}!OpenPDMFilter.c@{OpenPDMFilter.c}}
+\doxysubsubsection{\texorpdfstring{sub\_const}{sub\_const}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8c_a60df47cb75d65808c3dba1055ef6488c} 
+int64\+\_\+t sub\+\_\+const = 0}
+

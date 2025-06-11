@@ -1,0 +1,39 @@
+\doxysection{hw\+\_\+config.\+c File Reference}
+\hypertarget{hw__config_8c}{}\label{hw__config_8c}\index{hw\_config.c@{hw\_config.c}}
+{\ttfamily \#include "{}hw\+\_\+config.\+h"{}}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+size\+\_\+t \mbox{\hyperlink{hw__config_8c_a43d3ae8133310f23860b4f5b8cf4934e}{sd\+\_\+get\+\_\+num}} ()
+\item 
+sd\+\_\+card\+\_\+t \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{hw__config_8c_ae019a1533d42fd3972c3f1eea96d23d4}{sd\+\_\+get\+\_\+by\+\_\+num}} (size\+\_\+t num)
+\begin{DoxyCompactList}\small\item\em Get a pointer to an SD card object by its number. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{hw__config_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{hw__config_8c_ae019a1533d42fd3972c3f1eea96d23d4}\index{hw\_config.c@{hw\_config.c}!sd\_get\_by\_num@{sd\_get\_by\_num}}
+\index{sd\_get\_by\_num@{sd\_get\_by\_num}!hw\_config.c@{hw\_config.c}}
+\doxysubsubsection{\texorpdfstring{sd\_get\_by\_num()}{sd\_get\_by\_num()}}
+{\footnotesize\ttfamily \label{hw__config_8c_ae019a1533d42fd3972c3f1eea96d23d4} 
+sd\+\_\+card\+\_\+t \texorpdfstring{$\ast$}{*} sd\+\_\+get\+\_\+by\+\_\+num (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{num}{}\end{DoxyParamCaption})}
+
+
+
+Get a pointer to an SD card object by its number. 
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\texttt{in}}  & {\em num} & The number of the SD card to get.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+A pointer to the SD card object, or {\ttfamily NULL} if the number is invalid. 
+\end{DoxyReturn}
+\Hypertarget{hw__config_8c_a43d3ae8133310f23860b4f5b8cf4934e}\index{hw\_config.c@{hw\_config.c}!sd\_get\_num@{sd\_get\_num}}
+\index{sd\_get\_num@{sd\_get\_num}!hw\_config.c@{hw\_config.c}}
+\doxysubsubsection{\texorpdfstring{sd\_get\_num()}{sd\_get\_num()}}
+{\footnotesize\ttfamily \label{hw__config_8c_a43d3ae8133310f23860b4f5b8cf4934e} 
+size\+\_\+t sd\+\_\+get\+\_\+num (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+

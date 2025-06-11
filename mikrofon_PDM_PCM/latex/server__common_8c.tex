@@ -1,0 +1,129 @@
+\doxysection{server\+\_\+common.\+c File Reference}
+\hypertarget{server__common_8c}{}\label{server__common_8c}\index{server\_common.c@{server\_common.c}}
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include "{}btstack.\+h"{}}\newline
+{\ttfamily \#include "{}hardware/adc.\+h"{}}\newline
+{\ttfamily \#include "{}mic.\+h"{}}\newline
+{\ttfamily \#include "{}server\+\_\+common.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{server__common_8c_a74821fd2e1652d4ab2fdb8148017993d}{APP\+\_\+\+AD\+\_\+\+FLAGS}}~0x06
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{server__common_8c_a01ffdc0d678e814108fbbfa7bc417287}{packet\+\_\+handler}} (uint8\+\_\+t packet\+\_\+type, uint16\+\_\+t channel, uint8\+\_\+t \texorpdfstring{$\ast$}{*}packet, uint16\+\_\+t size)
+\item 
+uint16\+\_\+t \mbox{\hyperlink{server__common_8c_aea294c660abc532598d0cecc93a56f0e}{att\+\_\+read\+\_\+callback}} (hci\+\_\+con\+\_\+handle\+\_\+t connection\+\_\+handle, uint16\+\_\+t att\+\_\+handle, uint16\+\_\+t offset, uint8\+\_\+t \texorpdfstring{$\ast$}{*}buffer, uint16\+\_\+t buffer\+\_\+size)
+\item 
+int \mbox{\hyperlink{server__common_8c_a1836ea028b04701685deb4229f0f9baa}{att\+\_\+write\+\_\+callback}} (hci\+\_\+con\+\_\+handle\+\_\+t connection\+\_\+handle, uint16\+\_\+t att\+\_\+handle, uint16\+\_\+t transaction\+\_\+mode, uint16\+\_\+t offset, uint8\+\_\+t \texorpdfstring{$\ast$}{*}buffer, uint16\+\_\+t buffer\+\_\+size)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+bool \mbox{\hyperlink{server__common_8c_a44bb4dc29aa4f8b59fefcec140dd5394}{blue\+\_\+start}}
+\item 
+int \mbox{\hyperlink{server__common_8c_a23c66faa08d5f4366aedf9f553047ce9}{le\+\_\+notification\+\_\+enabled}}
+\item 
+hci\+\_\+con\+\_\+handle\+\_\+t \mbox{\hyperlink{server__common_8c_a02bea55afda5d53df054b197b9f51f02}{con\+\_\+handle}}
+\item 
+uint16\+\_\+t \mbox{\hyperlink{server__common_8c_ae4ee57be43fba76fdfa26edfa0db5e70}{current\+\_\+temp}}
+\item 
+const char \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{server__common_8c_a8556878012feffc9e0beb86cd78f424d}{value}} = "{}hello"{}
+\item 
+int \mbox{\hyperlink{server__common_8c_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}
+\item 
+bool \mbox{\hyperlink{server__common_8c_aaaa86cbd88875817d7896b26080d35d4}{recording}}
+\item 
+char \mbox{\hyperlink{server__common_8c_aa0ec8ae62320ddf9e7b3d84d4cf01522}{message}} \mbox{[}50\mbox{]}
+\end{DoxyCompactItemize}
+
+
+\label{doc-define-members}
+\Hypertarget{server__common_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{server__common_8c_a74821fd2e1652d4ab2fdb8148017993d}\index{server\_common.c@{server\_common.c}!APP\_AD\_FLAGS@{APP\_AD\_FLAGS}}
+\index{APP\_AD\_FLAGS@{APP\_AD\_FLAGS}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{APP\_AD\_FLAGS}{APP\_AD\_FLAGS}}
+{\footnotesize\ttfamily \label{server__common_8c_a74821fd2e1652d4ab2fdb8148017993d} 
+\#define APP\+\_\+\+AD\+\_\+\+FLAGS~0x06}
+
+Copyright (c) 2023 Raspberry Pi (Trading) Ltd.
+
+SPDX-\/\+License-\/\+Identifier\+: BSD-\/3-\/\+Clause 
+
+\label{doc-func-members}
+\Hypertarget{server__common_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{server__common_8c_aea294c660abc532598d0cecc93a56f0e}\index{server\_common.c@{server\_common.c}!att\_read\_callback@{att\_read\_callback}}
+\index{att\_read\_callback@{att\_read\_callback}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{att\_read\_callback()}{att\_read\_callback()}}
+{\footnotesize\ttfamily \label{server__common_8c_aea294c660abc532598d0cecc93a56f0e} 
+uint16\+\_\+t att\+\_\+read\+\_\+callback (\begin{DoxyParamCaption}\item[{hci\+\_\+con\+\_\+handle\+\_\+t}]{connection\+\_\+handle}{, }\item[{uint16\+\_\+t}]{att\+\_\+handle}{, }\item[{uint16\+\_\+t}]{offset}{, }\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{uint16\+\_\+t}]{buffer\+\_\+size}{}\end{DoxyParamCaption})}
+
+\Hypertarget{server__common_8c_a1836ea028b04701685deb4229f0f9baa}\index{server\_common.c@{server\_common.c}!att\_write\_callback@{att\_write\_callback}}
+\index{att\_write\_callback@{att\_write\_callback}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{att\_write\_callback()}{att\_write\_callback()}}
+{\footnotesize\ttfamily \label{server__common_8c_a1836ea028b04701685deb4229f0f9baa} 
+int att\+\_\+write\+\_\+callback (\begin{DoxyParamCaption}\item[{hci\+\_\+con\+\_\+handle\+\_\+t}]{connection\+\_\+handle}{, }\item[{uint16\+\_\+t}]{att\+\_\+handle}{, }\item[{uint16\+\_\+t}]{transaction\+\_\+mode}{, }\item[{uint16\+\_\+t}]{offset}{, }\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{uint16\+\_\+t}]{buffer\+\_\+size}{}\end{DoxyParamCaption})}
+
+\Hypertarget{server__common_8c_a01ffdc0d678e814108fbbfa7bc417287}\index{server\_common.c@{server\_common.c}!packet\_handler@{packet\_handler}}
+\index{packet\_handler@{packet\_handler}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{packet\_handler()}{packet\_handler()}}
+{\footnotesize\ttfamily \label{server__common_8c_a01ffdc0d678e814108fbbfa7bc417287} 
+void packet\+\_\+handler (\begin{DoxyParamCaption}\item[{uint8\+\_\+t}]{packet\+\_\+type}{, }\item[{uint16\+\_\+t}]{channel}{, }\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{packet}{, }\item[{uint16\+\_\+t}]{size}{}\end{DoxyParamCaption})}
+
+
+
+\label{doc-var-members}
+\Hypertarget{server__common_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{server__common_8c_a44bb4dc29aa4f8b59fefcec140dd5394}\index{server\_common.c@{server\_common.c}!blue\_start@{blue\_start}}
+\index{blue\_start@{blue\_start}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{blue\_start}{blue\_start}}
+{\footnotesize\ttfamily \label{server__common_8c_a44bb4dc29aa4f8b59fefcec140dd5394} 
+bool blue\+\_\+start\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{server__common_8c_a02bea55afda5d53df054b197b9f51f02}\index{server\_common.c@{server\_common.c}!con\_handle@{con\_handle}}
+\index{con\_handle@{con\_handle}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{con\_handle}{con\_handle}}
+{\footnotesize\ttfamily \label{server__common_8c_a02bea55afda5d53df054b197b9f51f02} 
+hci\+\_\+con\+\_\+handle\+\_\+t con\+\_\+handle}
+
+\Hypertarget{server__common_8c_ae4ee57be43fba76fdfa26edfa0db5e70}\index{server\_common.c@{server\_common.c}!current\_temp@{current\_temp}}
+\index{current\_temp@{current\_temp}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{current\_temp}{current\_temp}}
+{\footnotesize\ttfamily \label{server__common_8c_ae4ee57be43fba76fdfa26edfa0db5e70} 
+uint16\+\_\+t current\+\_\+temp}
+
+\Hypertarget{server__common_8c_a23c66faa08d5f4366aedf9f553047ce9}\index{server\_common.c@{server\_common.c}!le\_notification\_enabled@{le\_notification\_enabled}}
+\index{le\_notification\_enabled@{le\_notification\_enabled}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{le\_notification\_enabled}{le\_notification\_enabled}}
+{\footnotesize\ttfamily \label{server__common_8c_a23c66faa08d5f4366aedf9f553047ce9} 
+int le\+\_\+notification\+\_\+enabled}
+
+\Hypertarget{server__common_8c_aa0ec8ae62320ddf9e7b3d84d4cf01522}\index{server\_common.c@{server\_common.c}!message@{message}}
+\index{message@{message}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{message}{message}}
+{\footnotesize\ttfamily \label{server__common_8c_aa0ec8ae62320ddf9e7b3d84d4cf01522} 
+char message\mbox{[}50\mbox{]}}
+
+\Hypertarget{server__common_8c_aaaa86cbd88875817d7896b26080d35d4}\index{server\_common.c@{server\_common.c}!recording@{recording}}
+\index{recording@{recording}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{recording}{recording}}
+{\footnotesize\ttfamily \label{server__common_8c_aaaa86cbd88875817d7896b26080d35d4} 
+bool recording\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{server__common_8c_aa0ccb5ee6d882ee3605ff47745c6467b}\index{server\_common.c@{server\_common.c}!val@{val}}
+\index{val@{val}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{val}{val}}
+{\footnotesize\ttfamily \label{server__common_8c_aa0ccb5ee6d882ee3605ff47745c6467b} 
+int val\hspace{0.3cm}{\ttfamily [extern]}}
+
+\Hypertarget{server__common_8c_a8556878012feffc9e0beb86cd78f424d}\index{server\_common.c@{server\_common.c}!value@{value}}
+\index{value@{value}!server\_common.c@{server\_common.c}}
+\doxysubsubsection{\texorpdfstring{value}{value}}
+{\footnotesize\ttfamily \label{server__common_8c_a8556878012feffc9e0beb86cd78f424d} 
+const char\texorpdfstring{$\ast$}{*} value = "{}hello"{}}
+

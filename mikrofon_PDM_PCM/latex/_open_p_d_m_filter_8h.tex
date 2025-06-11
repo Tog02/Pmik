@@ -1,0 +1,150 @@
+\doxysection{Open\+PDMFilter.\+h File Reference}
+\hypertarget{_open_p_d_m_filter_8h}{}\label{_open_p_d_m_filter_8h}\index{OpenPDMFilter.h@{OpenPDMFilter.h}}
+
+
+Header file for Open PDM audio software decoding Library. ~\newline
+ This Library is used to decode and reconstruct the audio signal produced by ST MEMS microphone (MP45\+Dxxx, MP34\+Dxxx).  
+
+
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{_open_p_d_m_filter_8h_a52206c360f98df5c427a14a549fccf03}{USE\+\_\+\+LUT}}
+\item 
+\#define \mbox{\hyperlink{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}{SINCN}}~3
+\item 
+\#define \mbox{\hyperlink{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}{DECIMATION\+\_\+\+MAX}}~128
+\item 
+\#define \mbox{\hyperlink{_open_p_d_m_filter_8h_af4c71cf1c7c9fca6c47a737452a674cd}{FILTER\+\_\+\+GAIN}}~16
+\item 
+\#define \mbox{\hyperlink{_open_p_d_m_filter_8h_a9cfaa9c99af812cb3c154d311fb61d7d}{HTONS}}(A)
+\item 
+\#define \mbox{\hyperlink{_open_p_d_m_filter_8h_a7c6d3c3f812baa11cf8fb4773e8d6876}{Round\+Div}}(a,  b)
+\item 
+\#define \mbox{\hyperlink{_open_p_d_m_filter_8h_a06bb72a405d696bf9d8b5812fa62e683}{Satura\+LH}}(N,  L,  H)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{_open_p_d_m_filter_8h_a6ba633fba5b11139c89eaa108db67401}{Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+\+Init}} (\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}init\+\_\+struct)
+\item 
+void \mbox{\hyperlink{_open_p_d_m_filter_8h_a199d06075e9967a101ddb2836d44a115}{Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+64}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint16\+\_\+t \texorpdfstring{$\ast$}{*}data\+\_\+out, uint16\+\_\+t mic\+\_\+gain, \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}init\+\_\+struct)
+\item 
+void \mbox{\hyperlink{_open_p_d_m_filter_8h_a16065f0882aa5affb7eea52213803e84}{Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+128}} (uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, uint16\+\_\+t \texorpdfstring{$\ast$}{*}data\+\_\+out, uint16\+\_\+t mic\+\_\+gain, \mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}init\+\_\+struct)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Header file for Open PDM audio software decoding Library. ~\newline
+ This Library is used to decode and reconstruct the audio signal produced by ST MEMS microphone (MP45\+Dxxx, MP34\+Dxxx). 
+
+\begin{DoxyAuthor}{Author}
+CL 
+\end{DoxyAuthor}
+\begin{DoxyVersion}{Version}
+V1.\+0.\+0 
+\end{DoxyVersion}
+\begin{DoxyDate}{Date}
+9-\/September-\/2015 
+\end{DoxyDate}
+\begin{DoxyAttention}{Attention}
+
+\end{DoxyAttention}
+\doxysubsubsection*{\begin{center}\copyright{} COPYRIGHT 2018 STMicroelectronics\end{center} }
+
+Licensed under the Apache License, Version 2.\+0 (the "{}\+License"{}); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+\href{http://www.apache.org/licenses/LICENSE-2.0}{\texttt{http\+://www.\+apache.\+org/licenses/\+LICENSE-\/2.\+0}}
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "{}\+AS IS"{} BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License. 
+
+\label{doc-define-members}
+\Hypertarget{_open_p_d_m_filter_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!DECIMATION\_MAX@{DECIMATION\_MAX}}
+\index{DECIMATION\_MAX@{DECIMATION\_MAX}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{DECIMATION\_MAX}{DECIMATION\_MAX}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_ae773ccb1951b96ae11c3a93b0c149112} 
+\#define DECIMATION\+\_\+\+MAX~128}
+
+\Hypertarget{_open_p_d_m_filter_8h_af4c71cf1c7c9fca6c47a737452a674cd}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!FILTER\_GAIN@{FILTER\_GAIN}}
+\index{FILTER\_GAIN@{FILTER\_GAIN}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{FILTER\_GAIN}{FILTER\_GAIN}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_af4c71cf1c7c9fca6c47a737452a674cd} 
+\#define FILTER\+\_\+\+GAIN~16}
+
+\Hypertarget{_open_p_d_m_filter_8h_a9cfaa9c99af812cb3c154d311fb61d7d}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!HTONS@{HTONS}}
+\index{HTONS@{HTONS}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{HTONS}{HTONS}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_a9cfaa9c99af812cb3c154d311fb61d7d} 
+\#define HTONS(\begin{DoxyParamCaption}\item[{}]{A}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ((((uint16\_t)(A)\ \&\ 0xff00)\ >>\ 8)\ |\ \(\backslash\)}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (((uint16\_t)(A)\ \&\ 0x00ff)\ <<\ 8))}
+
+\end{DoxyCode}
+\Hypertarget{_open_p_d_m_filter_8h_a7c6d3c3f812baa11cf8fb4773e8d6876}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!RoundDiv@{RoundDiv}}
+\index{RoundDiv@{RoundDiv}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{RoundDiv}{RoundDiv}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_a7c6d3c3f812baa11cf8fb4773e8d6876} 
+\#define Round\+Div(\begin{DoxyParamCaption}\item[{}]{a}{, }\item[{}]{b}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{(((a)>0)?(((a)+(b)/2)/(b)):(((a)-\/(b)/2)/(b)))}
+
+\end{DoxyCode}
+\Hypertarget{_open_p_d_m_filter_8h_a06bb72a405d696bf9d8b5812fa62e683}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!SaturaLH@{SaturaLH}}
+\index{SaturaLH@{SaturaLH}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{SaturaLH}{SaturaLH}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_a06bb72a405d696bf9d8b5812fa62e683} 
+\#define Satura\+LH(\begin{DoxyParamCaption}\item[{}]{N}{, }\item[{}]{L}{, }\item[{}]{H}{}\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{(((N)<(L))?(L):(((N)>(H))?(H):(N)))}
+
+\end{DoxyCode}
+\Hypertarget{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!SINCN@{SINCN}}
+\index{SINCN@{SINCN}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{SINCN}{SINCN}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_af37fcc4c59b76894836e791ff1b51b49} 
+\#define SINCN~3}
+
+\Hypertarget{_open_p_d_m_filter_8h_a52206c360f98df5c427a14a549fccf03}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!USE\_LUT@{USE\_LUT}}
+\index{USE\_LUT@{USE\_LUT}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{USE\_LUT}{USE\_LUT}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_a52206c360f98df5c427a14a549fccf03} 
+\#define USE\+\_\+\+LUT}
+
+
+
+\label{doc-func-members}
+\Hypertarget{_open_p_d_m_filter_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{_open_p_d_m_filter_8h_a16065f0882aa5affb7eea52213803e84}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!Open\_PDM\_Filter\_128@{Open\_PDM\_Filter\_128}}
+\index{Open\_PDM\_Filter\_128@{Open\_PDM\_Filter\_128}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{Open\_PDM\_Filter\_128()}{Open\_PDM\_Filter\_128()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_a16065f0882aa5affb7eea52213803e84} 
+void Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+128 (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint16\+\_\+t \texorpdfstring{$\ast$}{*}}]{data\+\_\+out}{, }\item[{uint16\+\_\+t}]{mic\+\_\+gain}{, }\item[{\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}}]{init\+\_\+struct}{}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8h_a199d06075e9967a101ddb2836d44a115}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!Open\_PDM\_Filter\_64@{Open\_PDM\_Filter\_64}}
+\index{Open\_PDM\_Filter\_64@{Open\_PDM\_Filter\_64}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{Open\_PDM\_Filter\_64()}{Open\_PDM\_Filter\_64()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_a199d06075e9967a101ddb2836d44a115} 
+void Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+64 (\begin{DoxyParamCaption}\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{uint16\+\_\+t \texorpdfstring{$\ast$}{*}}]{data\+\_\+out}{, }\item[{uint16\+\_\+t}]{mic\+\_\+gain}{, }\item[{\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}}]{init\+\_\+struct}{}\end{DoxyParamCaption})}
+
+\Hypertarget{_open_p_d_m_filter_8h_a6ba633fba5b11139c89eaa108db67401}\index{OpenPDMFilter.h@{OpenPDMFilter.h}!Open\_PDM\_Filter\_Init@{Open\_PDM\_Filter\_Init}}
+\index{Open\_PDM\_Filter\_Init@{Open\_PDM\_Filter\_Init}!OpenPDMFilter.h@{OpenPDMFilter.h}}
+\doxysubsubsection{\texorpdfstring{Open\_PDM\_Filter\_Init()}{Open\_PDM\_Filter\_Init()}}
+{\footnotesize\ttfamily \label{_open_p_d_m_filter_8h_a6ba633fba5b11139c89eaa108db67401} 
+void Open\+\_\+\+PDM\+\_\+\+Filter\+\_\+\+Init (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{struct_t_p_d_m_filter___init_struct}{TPDMFilter\+\_\+\+Init\+Struct}} \texorpdfstring{$\ast$}{*}}]{init\+\_\+struct}{}\end{DoxyParamCaption})}
+
